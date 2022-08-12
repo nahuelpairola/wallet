@@ -9,6 +9,6 @@ const {
 } = require('../controllers/amount')
 
 router.route('/').get(getAmounts).post(createAmount)
-router.route('/:id').delete(deleteAmountount).patch(updateAmount)
+router.route('/:id').delete(deleteAmount).patch(updateAmount)
 
 module.exports = router

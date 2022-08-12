@@ -90,12 +90,12 @@ const createAmount = async (req,res) => {
 }
 
 const deleteAmount = async (req,res) => {
-    const {id:id} = req.params
+    res.status(200).send('DELETE IN PROCESS')
     
 }
 
 const updateAmount = async (req,res) => {
-
+    res.status(200).send('UPDATE IN PROCESS')
 }
 
 module.exports = {
