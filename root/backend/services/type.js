@@ -1,5 +1,4 @@
 
-const { type } = require('ramda')
 const {
     _createType,
     _deleteTypeById,

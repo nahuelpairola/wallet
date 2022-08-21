@@ -1,5 +1,4 @@
 
-const { indexOf } = require('ramda')
 const {getData, createData} = require('../repository/amount')
 const {getTypeById,getTypesByCreator} = require('../services/type')
 
