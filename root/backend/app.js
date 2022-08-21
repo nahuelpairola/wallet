@@ -19,7 +19,7 @@ app.use('/api/v1/type', auth, typeRoutes)
 app.use('/api/v1/user', userRoutes)
 
 // start
-const port = 3000 || process.env.PORT
+const port = process.env.PORT
 
 const start = async () => {
     try {
