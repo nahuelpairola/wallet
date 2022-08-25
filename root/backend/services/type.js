@@ -59,7 +59,6 @@ const getTypesByFilter = async (values) => {
     try {
         const types = await getTypesByFilterFromDB(filter)
         if(types) {
-            console.log(types)
             return types
         }
         return
@@ -75,7 +74,8 @@ const getTypesByCreatorId = async (id) => { // id: crerator id
     }
     try { 
         const types = await getTypesByCreatorIdFromDB(id)
-        return types
+        if(types) return types
+        return
     } catch (error) {
         console.log(error)
         return
@@ -92,11 +92,11 @@ const getTypeById = async (id) => {
         if(type){
             return type
         }
+        return
     } catch(error) {
         console.log(error)
         return
     }
-    return
 }
 
 const deleteTypeById = async (id) => {
@@ -104,7 +104,7 @@ const deleteTypeById = async (id) => {
         return
     }
     const typeToDelete = await getTypeByIdFromDB(id) // check if the type is not a default type
-    if(typeToDelete) { 
+    if(typeToDelete) {
         try {
             const deletedType = await deleteTypeByIdInDB(id)
             return deletedType
@@ -118,7 +118,19 @@ const deleteTypeById = async (id) => {
 }
 
 const updateTypeById = async (values) => {
-    return 'update type'
+    if(!values.id || !values.movement || !values.name){
+        return
+    }
+    try {
+        const typeMatched = await getTypeByIdFromDB(values.id)
+        if(typeMatched) {
+            const result = await updateTypeByIdInDB({id:values.id, movement:values.movement, name:values.name})
+            return result
+        }
+    } catch (error) {
+        console.log(error);
+        return
+    }
 }
 
 module.exports = {

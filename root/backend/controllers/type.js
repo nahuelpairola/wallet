@@ -71,7 +71,8 @@ const getTypes = async (req,res) => {
 const deleteType = async (req,res) => {
     const {id:id} = req.params
     if(!id) {
-        res.status(400).send('Please provide id')
+        console.log(id);
+        res.status(400).send('Please verify http req (no id)')
     }
     const creator = req.user
     
@@ -82,25 +83,28 @@ const deleteType = async (req,res) => {
                 const deletedType = await deleteTypeById(id)
                 res.status(200).send({User: req.user.email, DeletedType: deletedType})
             } else {
-                res.status(400).send('Error to delete the data: type not found or not able to delete')
+                res.status(400).send('Admin : Error to delete the data : type not found or not able to delete')
             }
         } catch (error) {
             res.status(400).send('Error to delete the data')
         }
     } else { // creator = user, can ONLY delete types created by him
         const typeToDelete = await getTypeById(id)
-        if(typeToDelete && !typeToDelete.default && typeToDelete.creator === creator.id) {
+        if(typeToDelete && !typeToDelete.default && typeToDelete.creator === creator.id) { // check if the creator is user
             const deletedType = await deleteTypeById(id)
             res.status(200).send({User: req.user.email, DeletedType: deletedType})
         } else {
-            res.status(400).send('Error to delete the data: type not found or not able to delete')
+            res.status(400).send('User : Error to delete the data : type not found or not able to delete')
         }
     }
 }
 
 const updateType = async (req, res) => {
-    const {id:id} = req.params
-    const {name:name, movement:movement} = req.body
+    const { id: id } = req.params
+    if(!id) {
+        res.status(400).send('Please verify http req (no id)')
+    }
+    const { name: name, movement: movement } = req.body
     if(!id || !name || !movement) {
         res.status(400).send('Please provide id and name')
     }

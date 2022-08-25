@@ -21,9 +21,9 @@ const getTypeByIdFromDB = async (id) => {
     where = {}
     where.id = id
     try {
-        const type = await Type.findAll({where})
+        const type = await Type.findAll({where,raw:true})
         if(type.length>0) { 
-            return type
+            return type[0]
         }
         return
     } catch(error) {
@@ -48,7 +48,7 @@ const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement,
     }
 
     try {
-        const types = await Type.findAll({where})
+        const types = await Type.findAll({where,raw:true})
         if(types.length>0) {
             return types
         }
@@ -67,9 +67,7 @@ const getTypesByCreatorIdFromDB = async (id) => {
     where.creator = id
     try {
         const types = await Type.findAll({where})
-        if(types) {
-            return types
-        }
+        if(types.length>0) return types
         return
     } catch(error) {
         console.log(error)
@@ -108,8 +106,8 @@ const updateTypeByIdInDB = async (values) => { // values must contain type id
     }
     try{
         await Type.update(newValues,{where})
-        const type = await Type.findAll({where})
-        return type
+        const type = await Type.findAll({where,raw:true})
+        return type[0]
     } catch(error){
         console.log(error)
         return
