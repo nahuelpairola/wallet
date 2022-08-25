@@ -1,124 +1,89 @@
 
-const {Type} = require('../models/Type')
+const { Type } = require('../models/Type')
 
-/**
- * _createType(type) -> return type created OR type if already exists
- * _getTypeById(typeId) -> return type if exists
- * _getTypesCustomsByFilter(movement, typeName and creator): 
- *      devuelve tipos segun creador, movimiento y/o nombre de tipo, 
- *      el creador puede ser admin o user
- * _getTypesByCreatorId(creatorId):
- *      devuelve tipos creados por el id del user
- * _getTypesDefaultByFilter():
- *      devuelve tipos creados por admin, cualquiera tiene acceso a éstos y se requiere filter
- * _deleteTypeById(values) -> values={typeId,creatorId}, sólo puede eliminarlo el creador
- * _updateTypeById(values) -> values={typeId, valores a modificar, creatorId}, sólo modifica el creador los creados por él
- */
-
-
-const _createType = async (type) => {
-    if(!type.movement || !type.name || !type.created_at || !type.creator) {
+const createTypeInDB = async (type) => { // create type
+    if(!type.movement || !type.name || !type.created_at || !type.creator || typeof type.default === undefined) {
         return
     }
     try {
         const result = await Type.create(type)
-        return (result)
+        return result
     } catch(error) {
         console.log(error)
         return
     }
 }
 
-const _getTypeById = async (typeId) => {
-    if(!typeId) {
+const getTypeByIdFromDB = async (id) => {
+    if(!id) {
         return
     }
-    where = {id:typeId}
+    where = {}
+    where.id = id
     try {
         const type = await Type.findAll({where})
-        if(type.length>0) {
+        if(type.length>0) { 
             return type
-        } else {
-            return
         }
+        return
     } catch(error) {
         console.log(error)
         return
     }
-}
+}  
 
-const _getTypesCustomsByFilter = async (filter) => {
-    if(!filter.creator){
-        return
+const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement, name, default
+    const where = {}    
+    if(filter.creator){
+        where.creator = filter.creator // add creators id
     }
-    const where = {creator:filter.creator} // add creators id
     if(filter.movement){
-        where.movement=filter.movement // add movement if filter requires
+        where.movement = filter.movement // add movement if filter requires
     }
     if(filter.name){
-        where.name=filter.name //add type name if filter require
+        where.name = filter.name //add type name if filter require
     }
-    where.default = false // only custom types
+    if(typeof filter.default !== undefined) {
+        where.default = filter.default // add default; true or false
+    }
+
     try {
         const types = await Type.findAll({where})
         if(types.length>0) {
-            return (types)
-        } else {
-            return
+            return types
         }
+        return
     } catch(error) {
         console.log(error)
         return
     }
 }
 
-const _getTypesByCreatorId = async (creatorId) => {
-    if(!creatorId){
-        return
-    }
-    const where = {creator:creatorId}
-    try {
-        const types = await Type.findAll({where})
-        if(types.length>0) {
-            return (types)
-        } else {
-            return
-        }
-    } catch(error) {
-        console.log(error)
-        return
-    }
-}
-
-const _getTypesDefaultByFilter = async (filter) => {
-    const where = {default:true}
-    if(filter){
-        if(filter.movement){
-            where.movement=filter.movement // add movement if filter requires
-        }
-        if(filter.name){
-            where.name=filter.name //add type name if filter require
-        }
-    }
-    try {
-        const types = await Type.findAll({where})
-        if(types.length>0) {
-            return (types)
-        } else {
-            return
-        }
-    } catch(error) {
-        console.log(error)
-        return
-    }
-}
-
-const _deleteTypeById = async (id) => {
+const getTypesByCreatorIdFromDB = async (id) => {
     if(!id){
         return
     }
-    const where = {id:id}
-    try{
+    const where = {}
+    where.creator = id
+    try {
+        const types = await Type.findAll({where})
+        if(types) {
+            return types
+        }
+        return
+    } catch(error) {
+        console.log(error)
+        return
+    }
+}
+
+const deleteTypeByIdInDB = async (id) => {
+    if(!id) {
+        return
+    }
+    const where = {}
+    where.id = id
+    try {
         const type = await Type.findAll({where})
         await Type.destroy({where})
         return type
@@ -128,11 +93,12 @@ const _deleteTypeById = async (id) => {
     }
 }
 
-const _updateTypeById = async (values) => { // VERIFICAR
+const updateTypeByIdInDB = async (values) => { // values must contain type id
     if(!values.id) {
         return
     }
-    const where = {id:values.id}
+    const where = {}
+    where.id = values.id
     const newValues = {}
     if(values.name) {
         newValues.name=values.name
@@ -151,11 +117,10 @@ const _updateTypeById = async (values) => { // VERIFICAR
 }
 
 module.exports = {
-    _createType,
-    _deleteTypeById,
-    _getTypeById,
-    _getTypesCustomsByFilter,
-    _getTypesByCreatorId,
-    _updateTypeById,
-    _getTypesDefaultByFilter,
+    createTypeInDB,
+    getTypeByIdFromDB,
+    getTypesByFilterFromDB,
+    getTypesByCreatorIdFromDB,
+    deleteTypeByIdInDB,
+    updateTypeByIdInDB,
 }

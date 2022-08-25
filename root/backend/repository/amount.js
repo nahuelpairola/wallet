@@ -1,8 +1,7 @@
 
 const { Amount } = require('../models/Amount')
 
-
-const getData = async (filter) => {
+const getDataByFilter = async (filter) => { // filter: creator id and type id
     const where = {}
     if(filter.creator){
         where.creator = filter.creator
@@ -15,9 +14,15 @@ const getData = async (filter) => {
     return amounts
 }
 
+const getDataById = async (id) => {
+    const where = {}
+    where.id = id
+    const amount = await Amount.findOne({where})
+    return amount
+}
+
 const createData = async (amount) => {
     try {
-        console.log(amount)
         const result = await Amount.create(amount)
         return result
     } catch(error) {
@@ -26,7 +31,22 @@ const createData = async (amount) => {
     }
 }
 
+const destroyDataById = async (id) => {
+    const where = {}
+    where.id = id
+
+    try {
+        const result = await Amount.destroy({where})
+        return
+    } catch (error) {
+        console.log(error)
+        return 
+    }
+}
+
 module.exports = {
-    getData,
-    createData
+    getDataByFilter,
+    getDataById,
+    createData,
+    destroyDataById
 }

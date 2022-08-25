@@ -1,0 +1,25 @@
+Types list by default, created by admin role's user (role:admin)
+
+----------------------------------------------------------------------
+
+Movement - Name
+
+input - salary
+input - other -> (another input money)
+
+
+output - taxes
+output - food	
+output - health	
+output - transport	
+output - clothes	
+output - holiday	
+output - rent	
+output - education	
+output - credit	
+output - pet	
+output - recreation	
+output - saving	
+output - phone
+output - vehicle
+output - other	

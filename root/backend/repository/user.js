@@ -1,13 +1,12 @@
 const {User} = require('../models/User')
 
-const getDataByEmail = async (email) => {
+const getUserByEmail = async (email) => {
     if(!email) {
         return 
     }
     const where = {}
-    if(email) {
-        where.email = email
-    }
+    where.email = email
+
     try {
         const user = await User.findAll({where})
         if(user.length>0) {
@@ -18,7 +17,7 @@ const getDataByEmail = async (email) => {
     }
 }
 
-const getDataById = async (id) => {
+const getUserById = async (id) => {
     if(!id) {
         return 
     }
@@ -36,7 +35,7 @@ const getDataById = async (id) => {
     }
 }
 
-const createData = async (user) => {
+const createUser = async (user) => {
     if(!user) {
         return
     }
@@ -48,7 +47,7 @@ const createData = async (user) => {
     }
 }
 
-const deleteDataById = async (id) => {
+const deleteUserById = async (id) => {
     if(!id){
         return
     }
@@ -62,7 +61,7 @@ const deleteDataById = async (id) => {
     }
 }
 
-const updateDataById = async (values) => { // values = {id,name}
+const updateUserById = async (values) => { // values = {id,name}
     if(!values.id || !values.first_name || !values.last_name || !values.email) {
         return
     }
@@ -81,9 +80,9 @@ const updateDataById = async (values) => { // values = {id,name}
 }
 
 module.exports = {
-    createData,
-    getDataByEmail,
-    getDataById,
-    deleteDataById,
-    updateDataById,
+    createUser,
+    getUserByEmail,
+    getUserById,
+    deleteUserById,
+    updateUserById,
 }

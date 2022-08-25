@@ -3,17 +3,17 @@ const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
 
 const { 
-    createData, 
-    getDataByEmail,
-    deleteDataById, 
-    updateDataById
+    createUser, 
+    getUserByEmail,
+    deleteUserById,
+    updateUserById
 } = require('../repository/user')
 
 // check password, return token
 const getTokenByUser = async (user) => {
 
     // check if emails user exists
-    const userMatched = await getDataByEmail(user.email)
+    const userMatched = await getUserByEmail(user.email)
 
     if(userMatched && userMatched.email === user.email) {
 
@@ -34,11 +34,18 @@ const getTokenByUser = async (user) => {
     }
 }
 
+// check user by token
+const getUserByToken = async (token) => {
+    const payload = jwt.verify(token, process.env.JWT_SECRET)
+    const userMatched = await getUserByEmail(payload.email)
+    return userMatched
+}
+
 // store user and returns token
 const storeUser = async (user) => {
 
     // check if emails user exists
-    const userMatched = await getDataByEmail(user.email)
+    const userMatched = await getUserByEmail(user.email)
 
     if(!userMatched || userMatched.email !== user.email) {
         // add time when it was created
@@ -48,7 +55,7 @@ const storeUser = async (user) => {
         const salt = await bcrypt.genSalt(10)
         user.password = await bcrypt.hash(user.password, salt)
 
-        const userCreated = await createData({ // store in db
+        const userCreated = await createUser({ // store in db
             first_name: user.first_name,
             last_name: user.last_name,
             email: user.email,
@@ -66,13 +73,6 @@ const storeUser = async (user) => {
     } else {
         return
     }    
-}
-
-// check user by token
-const getUserByToken = async (token) => {
-    const payload = jwt.verify(token, process.env.JWT_SECRET)
-    const userMatched = await getDataByEmail(payload.email)
-    return userMatched
 }
 
 module.exports = {
