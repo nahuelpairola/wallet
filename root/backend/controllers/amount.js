@@ -5,7 +5,7 @@ const { getAmountsByFilter,
         deleteAmountById,
     } = require('../services/amount')
 
-const {getTypeIdByNameAndMovement,
+const {getTypesByFilter, getTypeById,
     } = require('../services/type')
 
 const getAmounts = async (req,res) => {
@@ -35,7 +35,7 @@ const getAmounts = async (req,res) => {
     }
     if(type){
         try {
-            const typeMatched = await getTypeIdByNameAndMovement({name:type,movement:movement,creator:creator})
+            const typeMatched = await getTypeById(type)
             if(!typeMatched){
                 res.status(400).send('The type and movement are not stored')
             }
@@ -70,12 +70,14 @@ const createAmount = async (req,res) => {
     const creator = req.user
 
     try {
-        const filter = {creator:creator.id, movement:movement,name:type}
-        const typeIdMatched = await getTypeIdByNameAndMovement(filter)
-        if(!typeIdMatched){
-            res.status(400).send('The type and movement are not stored')
+        // check if type is default or custom
+        const filter = {creator:creator.id, movement:movement, name:type}
+        const typeMatched = await getTypesByFilter(filter)
+        console.log('TYPEMaTCHED', typeMatched);
+        if(!typeMatched){
+            res.status(400).send('The type and movement are not stored A')
         } else {
-            type = typeIdMatched
+            type = typeMatched.id
         }
     } catch(error){
         res.status(400).json('Cant create Amount')
@@ -85,24 +87,24 @@ const createAmount = async (req,res) => {
 
     try {
         const result = await storeAmount(amount)
-        res.status(201).send({AmountCreated:result})
+        res.status(201).send({User : req.user.email, AmountCreated : result})
     } catch (error) {
         res.status(400).send('Cant create Amount')
     }
 }
 
 const deleteAmount = async (req,res) => {
-    const {id} = req.params
+    const {id:id} = req.params
 
     const amount = await getAmountById(id)
 
-    if(!amount || amount.id !== id) {
+    if(!amount) {
         res.status(404).send('Cant delete Amount, Amount not found')
     }
 
     try {
         const result = await deleteAmountById(id)
-        res.status(200).send({AmountDeleted:result})
+        res.status(200).send({User : req.user.email,AmountDeleted : result})
     } catch (error) {
         console.log(error)
         res.status(400).json('Cant delete Amount')

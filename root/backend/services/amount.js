@@ -1,5 +1,13 @@
 
-const { getDataByFilter, getDataById, createData, destroyDataById} = require('../repository/amount')
+const {
+    createAmountInDB,
+    getAmountByIdFromDB,
+    getAmountsByFilterFromDB,
+    getAmountsByCreatorIdFromDB,
+    deleteAmounByIdInDB,
+    updateAmountInDB,
+} = require('../repository/amount')
+
 const {getTypesByCreatorId} = require('../services/type')
 
 const getAmountsByFilter = async (values) => {
@@ -16,7 +24,7 @@ const getAmountsByFilter = async (values) => {
 
     let data = null
     try {
-        data = await getDataByFilter(filter)
+        data = await getAmountsByFilterFromDB(filter)
     } catch (error) {
         return
     }
@@ -41,6 +49,7 @@ const getAmountsByFilter = async (values) => {
             })
         }
     }
+
     if(values.quantity) {
         let quantity = values.quantity // format -> <minQuantity>;<maxQuantity>
 
@@ -57,7 +66,8 @@ const getAmountsByFilter = async (values) => {
             })
         }
     }
-    const types = await getTypesByCreatorId(values.creator.id)
+
+    const types = await getTypesByCreatorId(values.creator)
     data = data.map(amount => {
         let typeIndex = types.findIndex(t => Number(t.id)===Number(amount.type))
         amount.type = { name: types[typeIndex].name,
@@ -65,35 +75,39 @@ const getAmountsByFilter = async (values) => {
                         default: types[typeIndex].default }
         return amount
     })
+
     if(values.movement){
         data = data.filter(amount => {
             return (amount.type.movement === values.movement)
         })
     }
+
     return data
 }
 
 const getAmountById = async (id) => {
-    
+    if(!id) return
+
     try {
-        const data = await getDataById(id)
-        console.log(data)
-        return data
+        const amount = await getAmountByIdFromDB(id)
+        return amount
     } catch (error) {
+        console.log(error);
         return
     }
 }
 
 const storeAmount = async (values) => {
-    const created_at = new Date()
+    if(!values.quantity || !values.type || !values.creator) return
+
     const amount = {
                 quantity:values.quantity,
                 type:values.type,
-                created_at:created_at,
+                created_at: new Date(),
                 creator:values.creator
                 }
     try {
-        const result = await createData(amount)
+        const result = await createAmountInDB(amount)
         return result
     } catch(error) {
         console.log(error)
@@ -101,10 +115,12 @@ const storeAmount = async (values) => {
     }
 }
 
-const deleteAmountById = async (id) => { // values: {id,creator}
+const deleteAmountById = async (id) => {
+    if(!id) return
+    
     try {
-        const amountToDelete = await getDataById(id)
-        await destroyDataById(id)
+        const amountToDelete = await getAmountByIdFromDB(id)
+        await deleteAmounByIdInDB(id)
         return amountToDelete
     } catch (error) {
         console.log(error)

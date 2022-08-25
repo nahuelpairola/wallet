@@ -54,8 +54,9 @@ const getTypesByFilter = async (values) => {
     const filter = {}
     if(values.movement) filter.movement = values.movement
     if(values.name) filter.name = values.name
-    if(values.default) filter.default = values.default
+    if(typeof values.default !== 'undefined') filter.default = values.default
     if(values.creator) filter.creator = values.creator
+
     try {
         const types = await getTypesByFilterFromDB(filter)
         if(types) {
