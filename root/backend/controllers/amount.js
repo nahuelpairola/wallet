@@ -3,9 +3,10 @@ const { getAmountsByFilter,
         getAmountById,
         storeAmount,
         deleteAmountById,
+        updateAmountById,
     } = require('../services/amount')
 
-const {getTypesByFilter, getTypeById,
+const {getTypesByFilter,
     } = require('../services/type')
 
 const getAmounts = async (req,res) => {
@@ -15,37 +16,14 @@ const getAmounts = async (req,res) => {
         movement:movement,
     } = req.query
 
-    let {
-        type:type,
-    } = req.query
-
     const creator = req.user // add user id to filter obj
 
     const filter = {}
     filter.creator = creator.id
 
-    if(movement){
-        filter.movement = movement
-    }
-    if(quantity){
-        filter.quantity = quantity
-    }
-    if(created_at){
-        filter.created_at = created_at
-    }
-    if(type){
-        try {
-            const typeMatched = await getTypeById(type)
-            if(!typeMatched){
-                res.status(400).send('The type and movement are not stored')
-            }
-            else {
-                filter.type = typeMatched
-            }
-        } catch (error) {
-            res.status(400).send('Cant create Amount')
-        }
-    }
+    if(quantity) filter.quantity = quantity
+    if(created_at) filter.created_at = created_at
+    if(movement) filter.movement = movement
     try {
         const amounts = await getAmountsByFilter(filter)
         res.status(200).send({Hits: amounts.length,User: req.user.email, Amounts: amounts})
@@ -71,12 +49,14 @@ const createAmount = async (req,res) => {
 
     try {
         // check if type is default or custom
-        const filter = {creator:creator.id, movement:movement, name:type}
+        const filter = {movement:movement, name:type}
         const typeMatched = await getTypesByFilter(filter)
-        console.log('TYPEMaTCHED', typeMatched);
         if(!typeMatched){
-            res.status(400).send('The type and movement are not stored A')
-        } else {
+            return res.status(400).send('The type and movement are not stored')
+        } else if (!typeMatched.default && typeMatched.creator !== creator.id) {
+            return res.status(400).send(`No type created with movement ${filter.movement} and name ${filter.name}`)
+        }
+        else {
             type = typeMatched.id
         }
     } catch(error){
@@ -97,9 +77,9 @@ const deleteAmount = async (req,res) => {
     const {id:id} = req.params
 
     const amount = await getAmountById(id)
-
+    console.log(amount);
     if(!amount) {
-        res.status(404).send('Cant delete Amount, Amount not found')
+        return res.status(404).send('Cant delete Amount, Amount not found')
     }
 
     try {

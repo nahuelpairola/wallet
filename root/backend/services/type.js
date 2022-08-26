@@ -59,9 +59,7 @@ const getTypesByFilter = async (values) => {
 
     try {
         const types = await getTypesByFilterFromDB(filter)
-        if(types) {
-            return types
-        }
+        if(types) return types
         return
     } catch (error) {
         console.log(error)
@@ -75,8 +73,7 @@ const getTypesByCreatorId = async (id) => { // id: crerator id
     }
     try { 
         const types = await getTypesByCreatorIdFromDB(id)
-        if(types) return types
-        return
+        return types
     } catch (error) {
         console.log(error)
         return
@@ -90,9 +87,7 @@ const getTypeById = async (id) => {
     }
     try {
         const type = await getTypeByIdFromDB(id)
-        if(type){
-            return type
-        }
+        if(type) return type
         return
     } catch(error) {
         console.log(error)
@@ -128,6 +123,7 @@ const updateTypeById = async (values) => {
             const result = await updateTypeByIdInDB({id:values.id, movement:values.movement, name:values.name})
             return result
         }
+        return
     } catch (error) {
         console.log(error);
         return

@@ -2,7 +2,7 @@
 const { Type } = require('../models/Type')
 
 const createTypeInDB = async (type) => { // create type
-    if(!type.movement || !type.name || !type.created_at || !type.creator || typeof type.default === undefined) return
+    if(!type.movement || !type.name || !type.created_at || !type.creator || typeof type.default === 'undefined') return
     
     try {
         const result = await Type.create(type)
@@ -41,8 +41,11 @@ const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement,
     if(typeof filter.default !== 'undefined') where.default = filter.default // add default; true or false
     
     try {
-        const types = await Type.findAll({where,raw:true})
-        if(types.length>0) return types
+        const types = await Type.findAll({where, raw:true})
+        if(types.length>0) {
+            if(types.length === 1) return types[0]
+            return types
+        }
         return
     } catch(error) {
         console.log(error)
@@ -58,7 +61,10 @@ const getTypesByCreatorIdFromDB = async (id) => {
 
     try {
         const types = await Type.findAll({where,raw:true})
-        if(types.length>0) return types
+        if(types.length>0) {
+            if(types.length === 1) return types[0]
+            return types
+        }
         return
     } catch(error) {
         console.log(error)

@@ -37,7 +37,6 @@ const getTypes = async (req,res) => {
 
     const filter = {}
 
-    
     if(creator.role === 'admin') { // check if user = admin
         try { // only will return default types, all created by admin users
             filter.default = true

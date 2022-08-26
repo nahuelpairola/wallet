@@ -8,7 +8,7 @@ const {
     updateAmountInDB,
 } = require('../repository/amount')
 
-const {getTypesByCreatorId} = require('../services/type')
+const {getTypesByCreatorId, getTypesByFilter, getTypeById} = require('../services/type')
 
 const getAmountsByFilter = async (values) => {
 
@@ -18,17 +18,13 @@ const getAmountsByFilter = async (values) => {
         filter.creator = values.creator
     }
 
-    if(values.type) {
-        filter.type = values.type // type id
-    }
-
     let data = null
     try {
         data = await getAmountsByFilterFromDB(filter)
     } catch (error) {
         return
     }
-    
+
     if(values.created_at) {
         let date = values.created_at // format -> <startDate>;<endDate>
 
@@ -53,13 +49,13 @@ const getAmountsByFilter = async (values) => {
     if(values.quantity) {
         let quantity = values.quantity // format -> <minQuantity>;<maxQuantity>
 
-        let minQuantity = Number(quantity.split(';')[0])
+        let minQuantity = quantity.split(';')[0]
         if(minQuantity !== ''){
             data = data.filter(amount => {
                 return (amount.quantity >= minQuantity)
             })
         }
-        let maxQuantity = Number(quantity.split(';')[1])
+        let maxQuantity = quantity.split(';')[1]
         if(maxQuantity !== '') {
             data = data.filter(amount => {
                 return (amount.quantity <= maxQuantity)
@@ -67,12 +63,20 @@ const getAmountsByFilter = async (values) => {
         }
     }
 
-    const types = await getTypesByCreatorId(values.creator)
+    let types = []
+    const defaultTypes = await getTypesByFilter({default:true}) // get default types
+    const customTypes = await getTypesByCreatorId(filter.creator) // get user customs types
+    if(customTypes.length>0){
+        types = [...defaultTypes,...customTypes]
+    }
+    else {
+        types = [...defaultTypes]
+    }
     data = data.map(amount => {
         let typeIndex = types.findIndex(t => Number(t.id)===Number(amount.type))
         amount.type = { name: types[typeIndex].name,
                         movement: types[typeIndex].movement,
-                        default: types[typeIndex].default }
+                        default: types[typeIndex].default } // replace type id with type mov, name and def
         return amount
     })
 
@@ -104,10 +108,12 @@ const storeAmount = async (values) => {
                 quantity:values.quantity,
                 type:values.type,
                 created_at: new Date(),
-                creator:values.creator
+                creator:Number(values.creator)
                 }
     try {
-        const result = await createAmountInDB(amount)
+        let result = await createAmountInDB(amount)
+        const type = await getTypeById(amount.type)
+        result.type = {id:type.id,movement:type.movement,name:type.name,default:type.default}
         return result
     } catch(error) {
         console.log(error)
@@ -128,9 +134,14 @@ const deleteAmountById = async (id) => {
     }
 }
 
+const updateAmountById = async (values) => {
+
+}
+
 module.exports = {
     getAmountsByFilter,
     getAmountById,
     storeAmount,
     deleteAmountById,
+    updateAmountById,
 }

@@ -2,7 +2,7 @@
 const { Amount } = require('../models/Amount')
 
 const createAmountInDB = async (amount) => {
-    if(!amount.quantity || !amount.type) {
+    if(!amount.quantity || !amount.type || !amount.creator || !amount.created_at) {
         return
     }
     try {
@@ -21,8 +21,8 @@ const getAmountByIdFromDB = async (id) => {
     const where = {}
     where.id = id
     try {
-        const amount = await Amount.findOne({where,raw:true})
-        if(amount.lenght>0){
+        const amount = await Amount.findAll({where,raw:true})
+        if(amount.length>0){
             return amount[0]
         }
         return
@@ -34,15 +34,12 @@ const getAmountByIdFromDB = async (id) => {
 
 const getAmountsByFilterFromDB = async (filter) => { // filter: creator id and type id
     const where = {}
-    if(filter.creator){
-        where.creator = filter.creator // creators id
-    }
-    if(filter.type) {
-        where.type = filter.type
-    }
+    if(filter.creator) where.creator = filter.creator // creators id
+    if(filter.type) where.type = filter.type
+
     try {
         const amounts = await Amount.findAll({where,raw:true})
-        if(amounts.lenght>0) return amounts
+        if(amounts.length>0) return amounts
         return
     } catch (error) {
         console.log(error)
