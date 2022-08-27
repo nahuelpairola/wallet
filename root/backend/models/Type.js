@@ -16,7 +16,11 @@ const Type = sequelize.define('types', {
         },
         creator:{
             type: DataTypes.BIGINT,
-            allowNull: false
+            allowNull: false,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
         },
         default:{
             type: DataTypes.BOOLEAN,

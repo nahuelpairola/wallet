@@ -73,7 +73,8 @@ const getTypesByCreatorId = async (id) => { // id: crerator id
     }
     try { 
         const types = await getTypesByCreatorIdFromDB(id)
-        return types
+        if(types) return types
+        return
     } catch (error) {
         console.log(error)
         return

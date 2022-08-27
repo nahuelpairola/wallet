@@ -53,7 +53,7 @@ const getTypes = async (req,res) => {
             const defaultTypes = await getTypesByFilter(filter)
             const customTypes = await getTypesByCreatorId(creator.id) // get custom of that admin
             if(customTypes){
-                types = [...defaultTypes,...customTypes]
+                types = [...defaultTypes, ...customTypes]
                 res.status(200).send({ nHits: types.length, User: creator.email, Types: types })
             }
             else {

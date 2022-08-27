@@ -6,7 +6,8 @@ const createAmountInDB = async (amount) => {
         return
     }
     try {
-        const result = await Amount.create(amount)
+        // const result = await Amount.create(amount)
+        const result = Amount.addAmount
         return result
     } catch(error) {
         console.log(error)
@@ -39,6 +40,8 @@ const getAmountsByFilterFromDB = async (filter) => { // filter: creator id and t
 
     try {
         const amounts = await Amount.findAll({where,raw:true})
+        const type = await amounts.getType()
+        console.log(type);
         if(amounts.length>0) return amounts
         return
     } catch (error) {

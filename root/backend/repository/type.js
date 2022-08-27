@@ -1,5 +1,5 @@
 
-const { Type } = require('../models')
+const { Type , User } = require('../models')
 
 const createTypeInDB = async (type) => { // create type
     if(!type.movement || !type.name || !type.created_at || !type.creator || typeof type.default === 'undefined') return
@@ -62,7 +62,6 @@ const getTypesByCreatorIdFromDB = async (id) => {
     try {
         const types = await Type.findAll({where,raw:true})
         if(types.length>0) {
-            if(types.length === 1) return types[0]
             return types
         }
         return
