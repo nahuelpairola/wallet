@@ -1,3 +1,3 @@
 # wallet
 
-## Gestor de gastos personales
+## Personal Finance Manager

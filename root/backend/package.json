@@ -14,7 +14,9 @@
     "routes": "^2.1.0",
     "sequelize": "^6.21.3"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "sequelize-cli": "^6.4.1"
+  },
   "scripts": {
     "start": "nodemon app.js"
   },

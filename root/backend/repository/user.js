@@ -1,4 +1,4 @@
-const {User} = require('../models/User')
+const {User} = require('../models')
 
 const getUserByEmail = async (email) => {
     if(!email) {

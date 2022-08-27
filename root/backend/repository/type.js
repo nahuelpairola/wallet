@@ -1,5 +1,5 @@
 
-const { Type } = require('../models/Type')
+const { Type } = require('../models')
 
 const createTypeInDB = async (type) => { // create type
     if(!type.movement || !type.name || !type.created_at || !type.creator || typeof type.default === 'undefined') return

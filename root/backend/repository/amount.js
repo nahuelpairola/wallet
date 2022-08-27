@@ -1,5 +1,5 @@
 
-const { Amount } = require('../models/Amount')
+const { Amount } = require('../models')
 
 const createAmountInDB = async (amount) => {
     if(!amount.quantity || !amount.type || !amount.creator || !amount.created_at) {
