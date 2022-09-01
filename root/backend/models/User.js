@@ -2,6 +2,11 @@ const { DataTypes } = require('sequelize')
 const { sequelize } = require('../db/connect')
 
 const User = sequelize.define('users', {
+        id:{
+            primaryKey:true,
+            type: DataTypes.BIGINT,
+            allowNull: false,
+        },
         first_name:{
             type: DataTypes.STRING(15),
             allowNull:false
