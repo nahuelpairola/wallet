@@ -14,6 +14,7 @@ const getAmounts = async (req,res) => {
         quantity:quantity,
         created_at:created_at,
         movement:movement,
+        type:type,
     } = req.query
 
     const creator = req.user // add user id to filter obj
@@ -24,6 +25,7 @@ const getAmounts = async (req,res) => {
     if(quantity) filter.quantity = quantity
     if(created_at) filter.created_at = created_at
     if(movement) filter.movement = movement
+    if(type) filter.type = type
     try {
         const amounts = await getAmountsByFilter(filter)
         res.status(200).send({Hits: amounts.length,User: req.user.email, Amounts: amounts})
@@ -45,7 +47,7 @@ const createAmount = async (req,res) => {
         res.status(400).send('Please provide all data')
     }
     
-    const creator = req.user
+    const creatorId = req.user.id
 
     try {
         // check if type is default or custom
@@ -53,7 +55,7 @@ const createAmount = async (req,res) => {
         const typeMatched = await getTypesByFilter(filter)
         if(!typeMatched){
             return res.status(400).send('The type and movement are not stored')
-        } else if (!typeMatched.default && typeMatched.creator !== creator.id) {
+        } else if (typeMatched.default===false && typeMatched.creator !== creatorId) {
             return res.status(400).send(`No type created with movement ${filter.movement} and name ${filter.name}`)
         }
         else {
@@ -63,7 +65,7 @@ const createAmount = async (req,res) => {
         res.status(400).json('Cant create Amount')
     }
 
-    const amount = {quantity:quantity,type:type,creator:creator.id}
+    const amount = {quantity:quantity,type:type,creator:creatorId}
 
     try {
         const result = await storeAmount(amount)
@@ -75,16 +77,16 @@ const createAmount = async (req,res) => {
 
 const deleteAmount = async (req,res) => {
     const {id:id} = req.params
-
+    if(!id) return res.status(400).send('Please provide id')
+     
     const amount = await getAmountById(id)
-    console.log(amount);
     if(!amount) {
-        return res.status(404).send('Cant delete Amount, Amount not found')
+        return res.status(404).send('Amount not found, can not delete Amount')
     }
 
     try {
         const result = await deleteAmountById(id)
-        res.status(200).send({User : req.user.email,AmountDeleted : result})
+        res.status(200).send({User : req.user.email , AmountDeleted : result})
     } catch (error) {
         console.log(error)
         res.status(400).json('Cant delete Amount')
@@ -92,7 +94,23 @@ const deleteAmount = async (req,res) => {
 }
 
 const updateAmount = async (req,res) => {
-    res.status(200).send('UPDATE IN PROCESS')
+    const {id:id} = req.params
+    const {
+        quantity:quantity,
+        movement:movement,
+        name:name
+    } = req.body
+    const creator = req.user.id
+    if(!id || !quantity || !movement || !name) return res.status(404).send('Please provide id, quantity, movement and name')
+    // check if the name and movement exist
+    try {
+        const filter = {movement:movement, name:name}
+        const typeMatched = await getTypesByFilter(filter)
+
+    } catch (error) {
+        
+    }
+    res.status(200).json({id, quantity, movement, name})
 }
 
 module.exports = {

@@ -67,12 +67,10 @@ const getTypesByFilter = async (values) => {
     }
 }
 
-const getTypesByCreatorId = async (id) => { // id: crerator id
-    if(!id) {
-        return
-    }
+const getTypesByCreatorId = async (userId) => { // id: crerator id
+    if(!userId) return
     try { 
-        const types = await getTypesByCreatorIdFromDB(id)
+        const types = await getTypesByCreatorIdFromDB(userId)
         if(types) return types
         return
     } catch (error) {

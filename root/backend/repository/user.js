@@ -1,42 +1,35 @@
-const {User} = require('../models')
+const { User } = require('../models')
 
-const getUserByEmail = async (email) => {
-    if(!email) {
-        return 
-    }
-    const where = {}
-    where.email = email
-
+const getUserByEmail = async (userEmail) => {
+    if(!userEmail) return
+    const where = {email:userEmail}
     try {
-        const user = await User.findAll({where})
+        const user = await User.findAll({where,raw:true})
         if(user.length>0) {
-            return (user[0].dataValues)
+            return user[0]
         }
     } catch(error) {
+        console.log(error)
         return
     }
 }
 
-const getUserById = async (id) => {
-    if(!id) {
-        return 
-    }
-    const where = {}
-    if(id) {
-        where.id = id
-    }
+const getUserById = async (userId) => {
+    if(!userId) return 
+    const where = {id:userId}
     try {
-        const user = await User.findAll({where})
+        const user = await User.findAll({where,raw:true})
         if(user.length>0) {
-            return (user[0].dataValues)
+            return user[0]
         }
     } catch(error) {
+        console.log(error)
         return
     }
 }
 
 const createUser = async (user) => {
-    if(!user) {
+    if(!user.first_name||!user.last_name||!user.email||!user.password||!user.created_at) {
         return
     }
     try {
@@ -44,38 +37,40 @@ const createUser = async (user) => {
         return result
     } catch(error) {
         console.log(error)
-    }
-}
-
-const deleteUserById = async (id) => {
-    if(!id){
         return
     }
-    const where = {id:id}
+}
+
+const deleteUserById = async (userId) => {
+    if(!userId) return
+    const where = {id:userId}
     try{
-        const user = await User.findAll({where})
+        const userDeleted = await User.findAll({where,raw:true})
         await User.destroy({where})
-        return user
+        return userDeleted
     } catch(error){
         console.log(error)
+        return
     }
 }
 
-const updateUserById = async (values) => { // values = {id,name}
+const updateUserById = async (values) => { 
     if(!values.id || !values.first_name || !values.last_name || !values.email) {
         return
     }
     const where = {id:values.id}
+    const newValues = {
+        first_name: values.first_name, 
+        last_name: values.last_name, 
+        email:values.email
+    }
     try{
-        await User.update({
-                        first_name: values.first_name, 
-                        last_name: values.last_name, 
-                        email:values.email
-                    },{where})
-        const user = await User.findAll({where})
-        return user
+        await User.update(newValues,{where})
+        const userUpdated = await User.findAll({where,raw:true})
+        return userUpdated
     } catch(error){
         console.log(error)
+        return
     }
 }
 
