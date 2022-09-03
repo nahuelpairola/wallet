@@ -63,22 +63,24 @@ const getAmountsByFilter = async (values) => {
         }
     }
 
-    let types = []
-    const defaultTypes = await getTypesByFilter({default:true}) // get default types
-    const customTypes = await getTypesByCreatorId(filter.creator) // get user customs types
-    if(customTypes.length>0){
-        types = [...defaultTypes,...customTypes]
-    }
-    else {
-        types = [...defaultTypes]
-    }
-    data = data.map(amount => {
-        let typeIndex = types.findIndex(t => Number(t.id)===Number(amount.type))
-        amount.type = { name: types[typeIndex].name,
-                        movement: types[typeIndex].movement,
-                        default: types[typeIndex].default } // replace type id with type mov, name and def
-        return amount
-    })
+    // SOLVE IT
+
+    // let types = []
+    // const defaultTypes = await getTypesByFilter({default:true}) // get default types
+    // const customTypes = await getTypesByCreatorId(filter.creator) // get user customs types
+    // if(customTypes.length>0){
+    //     types = [...defaultTypes,...customTypes]
+    // }
+    // else {
+    //     types = [...defaultTypes]
+    // }
+    // data = data.map(amount => {
+    //     let typeIndex = types.findIndex(t => Number(t.id)===Number(amount.type))
+    //     amount.type = { name: types[typeIndex].name,
+    //                     movement: types[typeIndex].movement,
+    //                     default: types[typeIndex].default } // replace type id with type mov, name and def
+    //     return amount
+    // })
 
     if(values.movement){
         data = data.filter(amount => {
@@ -106,7 +108,7 @@ const storeAmount = async (values) => {
 
     const amount = {
                 quantity:values.quantity,
-                type:values.type,
+                type:Number(values.type),
                 created_at: new Date(),
                 creator:Number(values.creator)
                 }

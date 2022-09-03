@@ -5,9 +5,15 @@ const createAmountInDB = async (amount) => {
     if(!amount.quantity || !amount.type || !amount.creator || !amount.created_at) {
         return
     }
+    const amountToCreate = {
+        quantity: Number(amount.quantity),
+        amountType: Number(amount.type),
+        created_at: amount.created_at,
+        creator: Number(amount.creator),
+    }
+    console.log(amountToCreate);
     try {
-        // const result = await Amount.create(amount)
-        const result = Amount.addAmount
+        const result = await Amount.create(amountToCreate)
         return result
     } catch(error) {
         console.log(error)
@@ -35,12 +41,14 @@ const getAmountByIdFromDB = async (id) => {
 
 const getAmountsByFilterFromDB = async (filter) => { // filter: creator id and type id
     const where = {}
-    if(filter.creator) where.creator = filter.creator // creators id
-    if(filter.type) where.type = filter.type
+    if(filter.creator) where.creator = Number(filter.creator) // creators id
+    if(filter.type) where.amountType = Number(filter.type)
 
     try {
-        const amounts = await Amount.findAll({where,raw:true, include: {model: User}})
-        console.log(amounts);
+        const amounts = await Amount.findAll({  where, 
+                                                attributes: { exclude: ['amountType'] }, 
+                                                raw:true, 
+                                                include: Type})
         if(amounts.length>0) return amounts
         return
     } catch (error) {

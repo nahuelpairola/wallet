@@ -3,13 +3,13 @@ const {Amount} = require('./Amount')
 const {Type} = require('./Type')
 const {User} = require('./User')
 
+Amount.belongsTo(User, { foreignKey: 'creator' });
+User.hasMany(Amount, { foreignKey: 'id' });
 
-User.hasMany(Type,{foreignKey: 'id'})
-Type.belongsTo(User, {foreignKey: 'creator'})
+Type.belongsTo(User, { foreignKey: 'creator' });
+User.hasMany(Type, { foreignKey: 'id' });
 
-User.hasMany(Amount,{foreignKey: 'id'})
-Amount.belongsTo(User, {foreignKey: 'creator'})
-
-Type.hasMany(Amount,{foreignKey: 'id'})
+Amount.belongsTo(Type, { foreignKey: 'amountType' });
+Type.hasMany(Amount, { foreignKey: 'id' });
 
 module.exports = {User, Type, Amount}

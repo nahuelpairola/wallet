@@ -41,7 +41,7 @@ const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement,
     if(typeof filter.default !== 'undefined') where.default = filter.default // add default; true or false
     
     try {
-        const types = await Type.findAll({where, raw:true, include:User})
+        const types = await Type.findAll({where, raw:true})
         if(types.length>0) {
             if(types.length === 1) return types[0]
             return types
