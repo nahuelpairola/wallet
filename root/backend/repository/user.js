@@ -1,20 +1,19 @@
 const { User } = require('../models')
 
-const getUserByEmail = async (userEmail) => {
-    if(!userEmail) return
+const getUserByEmailFromDB = async (userEmail) => {
+    if(!userEmail) return null
     const where = {email:userEmail}
-    try {
-        const user = await User.findAll({where,raw:true})
-        if(user.length>0) {
-            return user[0]
-        }
-    } catch(error) {
-        console.log(error)
-        return
+    const user = await User.findAll({where,raw:true})
+    if(!user) {
+        return null
     }
+    if(user.length>0) {
+        return user[0]
+    }
+    return null
 }
 
-const getUserById = async (userId) => {
+const getUserByIdFromDB = async (userId) => {
     if(!userId) return 
     const where = {id:userId}
     try {
@@ -28,7 +27,7 @@ const getUserById = async (userId) => {
     }
 }
 
-const createUser = async (user) => {
+const createUserInDB = async (user) => {
     if(!user.first_name||!user.last_name||!user.email||!user.password||!user.created_at) {
         return
     }
@@ -41,7 +40,7 @@ const createUser = async (user) => {
     }
 }
 
-const deleteUserById = async (userId) => {
+const deleteUserByIdInDB = async (userId) => {
     if(!userId) return
     const where = {id:userId}
     try{
@@ -54,7 +53,7 @@ const deleteUserById = async (userId) => {
     }
 }
 
-const updateUserById = async (values) => { 
+const updateUserByIdInDB = async (values) => { 
     if(!values.id || !values.first_name || !values.last_name || !values.email) {
         return
     }
@@ -75,9 +74,9 @@ const updateUserById = async (values) => {
 }
 
 module.exports = {
-    createUser,
-    getUserByEmail,
-    getUserById,
-    deleteUserById,
-    updateUserById,
+    createUserInDB,
+    getUserByEmailFromDB,
+    getUserByIdFromDB,
+    deleteUserByIdInDB,
+    updateUserByIdInDB,
 }

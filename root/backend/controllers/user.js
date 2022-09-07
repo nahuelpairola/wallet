@@ -1,20 +1,21 @@
 
 const { storeUser, getTokenByUser } = require('../services/user')
+const {StatusCodes} = require('http-status-codes')
+const {BadRequestError , UnauthenticatedError} = require('../errors')
 
 // check password and generate token
-const login = async (req, res) => {
+const login = async (req, res, next) => {
     const {email, password} = req.body
     if(!email || !password) {
-        res.status(400).send('Please provide email and password')
+        throw new BadRequestError('Please provide email and password')
     }
     const userToCheck = {email:email, password:password}
     const userAndToken = await getTokenByUser(userToCheck)
-
     if(!userAndToken){
-        res.status(401).send('Unauthorized access')
+        throw new UnauthenticatedError('Unauthorized access')
+    } else {
+        res.status(StatusCodes.ACCEPTED).json({user:userAndToken.email, token:userAndToken.token})
     }
-    
-    res.status(200).send(userAndToken)
 }
 
 // create user, encrypt pass and generate token
@@ -28,7 +29,7 @@ const registration = async (req, res) => {
     } = req.body
 
     if(!first_name || !last_name || !email || !password) {
-        res.status(400).send('Please provide all data')
+        throw new BadRequestError('Please provide first_name, last_name, email and password')
     }
 
     const user = {first_name, last_name, email, password}
@@ -37,12 +38,12 @@ const registration = async (req, res) => {
         user.role = role
     }
 
-    const result = await storeUser(user)
+    const newUser = await storeUser(user)
     
-    if(!result) {
-        res.status(400).send('User already created')
+    if(!newUser) {
+        res.status(StatusCodes.CONFLICT).json({msg:'User already created'})
     } else {
-        res.status(201).send(result)
+        res.status(StatusCodes.CREATED).json({newUser})
     }
 }
 

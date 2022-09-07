@@ -1,3 +1,4 @@
+const {StatusCodes} = require('http-status-codes')
 
 const { getAmountsByFilter,
         getAmountById,
@@ -28,9 +29,9 @@ const getAmounts = async (req,res) => {
     if(type) filter.type = type
     try {
         const amounts = await getAmountsByFilter(filter)
-        res.status(200).send({Hits: amounts.length,User: req.user.email, Amounts: amounts})
+        res.status(StatusCodes.OK).send({Hits: amounts.length,User: req.user.email, Amounts: amounts})
     } catch (error) {
-        res.status(400).send('Cant get Amounts')
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Internal Server Error'})
     }
 }
 
@@ -40,56 +41,63 @@ const createAmount = async (req,res) => {
         movement:movement,
     } = req.body
     let {
-        type:type,
+        type:typeName,
     } = req.body
 
-    if(!quantity || !movement || !type) {
-        res.status(400).send('Please provide all data')
+    if(!quantity || !movement || !typeName) {
+        res.status(StatusCodes.BAD_REQUEST).json({msg:'Please provide all data'})
     }
     
     const creatorId = req.user.id
+    let typeId = null
 
     try {
         // check if type is default or custom
-        const filter = {movement:movement, name:type}
+        const filter = {movement:movement, name:typeName}
         const typeMatched = await getTypesByFilter(filter)
-        if(!typeMatched){
-            return res.status(400).send('The type and movement are not stored')
-        } else if (typeMatched.default===false && typeMatched.creator !== creatorId) {
-            return res.status(400).send(`No type created with movement ${filter.movement} and name ${filter.name}`)
-        }
-        else {
-            type = typeMatched.id
+        if(!typeMatched || typeMatched.default===false && typeMatched.creator !== creatorId){
+            return res.status(StatusCodes.NOT_FOUND).json({msg:'Type not found'})
+        } else {
+            typeId = typeMatched.id
         }
     } catch(error){
-        res.status(400).json('Cant create Amount')
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Cant create Amount'})
     }
 
-    const amount = {quantity:quantity,type:type,creator:creatorId}
+    const newAmount = {quantity:quantity,type:typeId,creator:creatorId}
 
     try {
-        const result = await storeAmount(amount)
-        res.status(201).send({User : req.user.email, AmountCreated : result})
+        const amountCreated = await storeAmount(newAmount)
+        if(!amountCreated) res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Cant create Amount'})
+        else res.status(StatusCodes.CREATED).send({
+            User:req.user.email,
+            AmountCreated:result
+        })
     } catch (error) {
-        res.status(400).send('Cant create Amount')
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Cant create Amount'})
     }
 }
 
 const deleteAmount = async (req,res) => {
     const {id:id} = req.params
-    if(!id) return res.status(400).send('Please provide id')
-     
-    const amount = await getAmountById(id)
-    if(!amount) {
-        return res.status(404).send('Amount not found, can not delete Amount')
+    
+    try {
+        const amount = await getAmountById(id)
+        if(!amount) {
+            return res.status(StatusCodes.NOT_FOUND).json({msg:'Amount not found'})
+        }
+    } catch(error) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Internal Server Error'})
     }
 
     try {
-        const result = await deleteAmountById(id)
-        res.status(200).send({User : req.user.email , AmountDeleted : result})
+        const amountDeleted = await deleteAmountById(id)
+        res.status(StatusCodes.OK).json({
+            User:req.user.email,
+            AmountDeleted:amountDeleted
+        })
     } catch (error) {
-        console.log(error)
-        res.status(400).json('Cant delete Amount')
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Internal Server Error'})
     }
 }
 
@@ -100,17 +108,21 @@ const updateAmount = async (req,res) => {
         movement:movement,
         name:name
     } = req.body
-    const creator = req.user.id
-    if(!id || !quantity || !movement || !name) return res.status(404).send('Please provide id, quantity, movement and name')
-    // check if the name and movement exist
-    try {
-        const filter = {movement:movement, name:name}
-        const typeMatched = await getTypesByFilter(filter)
 
-    } catch (error) {
-        
+    const creator = req.user
+    if(!quantity || !movement || !name) res.status(StatusCodes.BAD_REQUEST).send('Please provide id, quantity, movement and name')
+    if(creator.role === 'admin') {
+        // check if the new name and movement exist 
+        try {
+            const filter = {movement:movement, name:name}
+            const typeMatched = await getTypesByFilter(filter)
+    
+        } catch (error) {
+            
+        }
+        res.status(200).json({id, quantity, movement, name})
+
     }
-    res.status(200).json({id, quantity, movement, name})
 }
 
 module.exports = {

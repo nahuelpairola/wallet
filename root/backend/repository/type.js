@@ -4,11 +4,10 @@ const { Type , User} = require('../models')
 const createTypeInDB = async (type) => { // create type
     if(!type.movement || !type.name || !type.created_at || !type.creator || typeof type.default === 'undefined') return
     try {
-        const result = await Type.create(type)
-        return result
+        const typeCreated = await Type.create(type)
+        return typeCreated
     } catch(error) {
-        console.log(error)
-        return
+        throw new Error('Cant create type', error)
     }
 }
 
@@ -18,10 +17,9 @@ const getTypeByIdFromDB = async (typeId) => {
     try {
         const type = await Type.findAll({where,raw:true})
         if(type.length>0) return type[0]
-        return
+        return null
     } catch(error) {
-        console.log(error)
-        return
+        throw new Error('Cant get items', error)
     }
 }  
 
@@ -37,10 +35,9 @@ const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement,
             if(types.length === 1) return types[0]
             return types
         }
-        return
+        return null
     } catch(error) {
-        console.log(error)
-        return
+        throw new Error('Cant get types', error)
     }
 }
 
@@ -52,10 +49,9 @@ const getTypesByCreatorIdFromDB = async (creatorId) => {
         if(types.length>0) {
             return types
         }
-        return
+        return null
     } catch(error) {
-        console.log(error)
-        return
+        throw new Error('Cant get types', error)
     }
 }
 
@@ -67,8 +63,7 @@ const deleteTypeByIdInDB = async (typeId) => {
         await Type.destroy({where})
         return typeToDelete[0]
     } catch(error){
-        console.log(error)
-        return
+        throw new Error('Cant delete types', error)
     }
 }
 
@@ -84,8 +79,7 @@ const updateTypeByIdInDB = async (values) => { // values must contain type id
         const type = await Type.findAll({where,raw:true})
         return type[0]
     } catch(error){
-        console.log(error)
-        return
+        throw new Error('Cant get types', error)
     }
 }
 

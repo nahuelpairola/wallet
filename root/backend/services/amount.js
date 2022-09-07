@@ -48,14 +48,15 @@ const getAmountsByFilter = async (values) => {
 
         let minQuantity = quantity.split(';')[0]
         if(minQuantity !== ''){
+            console.log(minQuantity);
             data = data.filter(amount => {
-                return (amount.quantity >= minQuantity)
+                return (Number(amount.quantity) >= Number(minQuantity))
             })
         }
         let maxQuantity = quantity.split(';')[1]
         if(maxQuantity !== '') {
             data = data.filter(amount => {
-                return (amount.quantity <= maxQuantity)
+                return (Number(amount.quantity) <= Number(maxQuantity))
             })
         }
     }

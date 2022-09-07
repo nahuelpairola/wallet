@@ -16,6 +16,7 @@ const createAmountInDB = async (amount) => {
         return result
     } catch(error) {
         console.log(error)
+        
         return
     }
 }
@@ -24,6 +25,7 @@ const getAmountByIdFromDB = async (amountId) => {
     if(!amountId){
         return
     }
+    console.log(isIdANumber(amountId));
     const where = {id: amountId}
     try {
         const amount = await Amount.findAll({
@@ -40,8 +42,8 @@ const getAmountByIdFromDB = async (amountId) => {
         }
         return
     } catch(error){
-        console.log(error);
-        return
+        throw new Error(`Can not get type. Message error: "${error.parent.message}".
+                        Error code:${error.parent.code}`)
     }
 }
 

@@ -9,7 +9,7 @@ const {
 } = require('../repository/type')
 
 const storeType = async (values) => {
-    if(!values.movement || !values.name || !values.creator) {
+    if(!values.movement || !values.name || !values.creator || typeof values.default === 'undefined') {
         return
     }
     const type = {
@@ -19,21 +19,26 @@ const storeType = async (values) => {
         default: values.default,
         created_at: new Date()
     }
-    // check if there is not a default type with the same name and movement
-    try {
-        const typeByDefaultMatched = await getTypesByFilterFromDB({movement:values.movement,
-                                                                name:values.name,
-                                                                default:true })
-        if(!typeByDefaultMatched && values.default) { // create new type by default
+    // check if there is not a default type with same name and movement
+    const typeByDefaultMatched = await getTypesByFilterFromDB({
+        movement:values.movement,
+        name:values.name,
+        default:true
+    })
+    if(!typeByDefaultMatched) {
+        if(values.default === true) {
+            // create new default type default
             const storedDefaultType = await createTypeInDB(type)
+            console.log('storedefaulttype');
             return storedDefaultType
-        }
-        if(!typeByDefaultMatched && !values.default) {
+        } else if (values.default === false) {
             // check if that user has not a custom type with the same values
-            const customType = await getTypesByFilterFromDB({movement:values.movement,
-                                                            name:values.name,
-                                                            creator:values.creator,
-                                                            default:false })
+            const customType = await getTypesByFilterFromDB({
+                movement:values.movement,
+                name:values.name,
+                creator:values.creator,
+                default:false 
+            })
             if(!customType) {
                 const storedCustomType = await createTypeInDB(type)
                 return storedCustomType
@@ -41,13 +46,11 @@ const storeType = async (values) => {
                 return customType
             }
         }
-        if(typeByDefaultMatched){
-            return typeByDefaultMatched
-        }
-    } catch (error) {
-        console.log(error)
-        return
     }
+    if(typeByDefaultMatched){
+        return typeByDefaultMatched
+    }
+    return null
 }
 
 const getTypesByFilter = async (values) => {
@@ -60,7 +63,7 @@ const getTypesByFilter = async (values) => {
     try {
         const types = await getTypesByFilterFromDB(filter)
         if(types) return types
-        return
+        return null
     } catch (error) {
         console.log(error)
         return
@@ -114,15 +117,16 @@ const deleteTypeById = async (id) => {
 
 const updateTypeById = async (values) => {
     if(!values.id || !values.movement || !values.name){
-        return
+        return null
     }
     try {
         const typeMatched = await getTypeByIdFromDB(values.id)
         if(typeMatched) {
             const result = await updateTypeByIdInDB({id:values.id, movement:values.movement, name:values.name})
             return result
+        } else {
+            return null
         }
-        return
     } catch (error) {
         console.log(error);
         return
