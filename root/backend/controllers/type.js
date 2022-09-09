@@ -1,4 +1,7 @@
 const {StatusCodes} = require('http-status-codes')
+const {BadRequestError, NotFoundError, UnauthenticatedError} = require('../errors')
+
+const { PROVIDE_ALL_DATA, TYPE_CREATION_ERROR, TYPE_DELETING_ERROR, TYPE_NOT_FOUND } = require('../errors/error-msg-list')
 
 const {
     storeType,
@@ -14,9 +17,7 @@ const createType = async (req, res) => {
         movement: movement,
         name: name,
     } = req.body
-    if(!movement || !name) {
-        res.status(StatusCodes.BAD_REQUEST).json({msg:'Please provide email and password'})
-    }
+    if(!movement || !name) throw new BadRequestError(PROVIDE_ALL_DATA)
 
     const creator = req.user
     const type = {name: name, movement: movement, creator: creator.id}
@@ -27,10 +28,9 @@ const createType = async (req, res) => {
     try {
         // returns the founded type or a new type
         const newType = await storeType(type)
-        if(!newType) res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Cant create Amount'})
-        else res.status(StatusCodes.CREATED).json({User: creator.email, CreatedType: newType})
+        res.status(StatusCodes.CREATED).json({User: creator.email, CreatedType: newType})
     } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Cant create Amount'})
+        throw new Error(TYPE_CREATION_ERROR)
     }
 }
 
@@ -44,7 +44,7 @@ const getTypes = async (req,res) => {
             filter.default = true
             const defaultTypes = await getTypesByFilter(filter)
             if(!defaultTypes) {
-                res.status(StatusCodes.NOT_FOUND).json({msg:'Types not found'})
+                throw new NotFoundError(TYPE_NOT_FOUND)
             } else {
                 res.status(StatusCodes.OK).json({
                     nHits: defaultTypes.length, 
@@ -53,16 +53,14 @@ const getTypes = async (req,res) => {
                 })
             }
         } catch(error){
-            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Error to get amount types'})
+            throw new BadRequestError('Cant find default types')
         }
     } else { // creator = user
         let types = []
         try {
             filter.default = true
             const defaultTypes = await getTypesByFilter(filter)
-            if(!defaultTypes) {
-                res.status(StatusCodes.NOT_FOUND).json({msg:'Types not found'})
-            }
+            if(!defaultTypes) throw new NotFoundError(TYPE_NOT_FOUND)
 
             const customTypes = await getTypesByCreatorId(creator.id) // get custom of that admin
             if(customTypes){ // is the user has custom types
@@ -78,16 +76,14 @@ const getTypes = async (req,res) => {
                 res.status(StatusCodes.OK).json({ nHits: types.length, User: creator.email, Types: types })
             }
         } catch(error) {
-            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Error to get amount types'})
+            throw new BadRequestError('Cant find users types')
         }
     }
 }
 
 const deleteType = async (req,res) => {
     const {id:id} = req.params
-    if(!id){
-        res.status(StatusCodes.BAD_REQUEST).json({msg:'No id'})
-    }
+    if(!id) throw new BadRequestError(PROVIDE_ALL_DATA)
     const creator = req.user
     if(creator.role === 'admin') { // can only delete default types no matters creator
         try { // check if type id and creator id are in the type to delete
@@ -99,15 +95,8 @@ const deleteType = async (req,res) => {
                         User: creator.email,
                         DeletedType: deletedType
                     })
-                } else {
-                    res.status(StatusCodes.UNAUTHORIZED).json({
-                        Admin: creator.email, 
-                        msg:'The type is a custom one, not default'
-                    })
-                }
-            } else {
-                res.status(StatusCodes.NOT_FOUND).json({msg:'Type not found'})
-            }
+                } else throw new UnauthenticatedError()
+            } else throw new NotFoundError('Type not found')
         } catch (error) {
             res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Error to delete the data'})
         }

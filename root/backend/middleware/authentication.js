@@ -2,7 +2,7 @@
 // check user token
 const {getUserByToken} = require('../services/user')
 const {UnauthenticatedError} = require('../errors/unauthenticated')
-const { USER_NOT_FOUND } = require('../errors/custom-error-msg')
+const { USER_NOT_FOUND } = require('../errors/error-msg-list')
 
 const authentication = async (req,res,next) => {
     const auth = req.headers.authorization // (req.req || req).

@@ -12,7 +12,7 @@ const {
 const { PASSWORD_INCORRECT,
         TOKEN_UNAUTHORIZED,
         USER_NOT_FOUND,
-        NOT_ENOUGH_DATA} = require('../errors/custom-error-msg')
+        NOT_ENOUGH_DATA} = require('../errors/error-msg-list')
 
 // check password, return token
 const getTokenByUser = async (user) => {
@@ -48,7 +48,7 @@ const getUserByToken = async (token) => {
 }
 
 // store user and returns token
-const storeUser = async (user) => {
+const createUser = async (user) => {
     if(!user.first_name ||
         !user.last_name || 
         !user.email ||
@@ -72,7 +72,7 @@ const storeUser = async (user) => {
             password: user.password,
             created_at: user.created_at,
             role: user.role
-        })
+        })    
         
         // create token, payload = email
         const token = jwt.sign({email: userCreated.email},
@@ -86,7 +86,7 @@ const storeUser = async (user) => {
 }
 
 module.exports = {
-    storeUser,
+    createUser,
     getTokenByUser,
     getUserByToken,
 }

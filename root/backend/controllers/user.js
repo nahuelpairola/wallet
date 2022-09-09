@@ -1,7 +1,9 @@
 
-const { storeUser, getTokenByUser } = require('../services/user')
+const { createUser, getTokenByUser } = require('../services/user')
 const {StatusCodes} = require('http-status-codes')
 const {BadRequestError , UnauthenticatedError} = require('../errors')
+const { TOKEN_UNAUTHORIZED, USER_ALREADY_CREATED, PROVIDE_ALL_DATA } = require('../errors/error-msg-list')
+
 
 // check password and generate token
 const login = async (req, res, next) => {
@@ -12,7 +14,7 @@ const login = async (req, res, next) => {
     const userToCheck = {email:email, password:password}
     const userAndToken = await getTokenByUser(userToCheck)
     if(!userAndToken){
-        throw new UnauthenticatedError('Unauthorized access')
+        throw new UnauthenticatedError(TOKEN_UNAUTHORIZED)
     } else {
         res.status(StatusCodes.ACCEPTED).json({user:userAndToken.email, token:userAndToken.token})
     }
@@ -29,22 +31,14 @@ const registration = async (req, res) => {
     } = req.body
 
     if(!first_name || !last_name || !email || !password) {
-        throw new BadRequestError('Please provide first_name, last_name, email and password')
+        throw new BadRequestError(PROVIDE_ALL_DATA)
     }
 
     const user = {first_name, last_name, email, password}
-    
-    if(role) {
-        user.role = role
-    }
+    if(role) user.role = role
 
-    const newUser = await storeUser(user)
-    
-    if(!newUser) {
-        res.status(StatusCodes.CONFLICT).json({msg:'User already created'})
-    } else {
-        res.status(StatusCodes.CREATED).json({newUser})
-    }
+    const newUser = await createUser(user)
+    res.status(StatusCodes.CREATED).json({newUser})
 }
 
 module.exports = {login, registration}

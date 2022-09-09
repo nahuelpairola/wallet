@@ -1,25 +1,35 @@
 
+const { NOT_ENOUGH_DATA,
+    TYPE_CREATION_ERROR, 
+    TYPE_SEARCHING_ERROR, 
+    TYPE_DELETING_ERROR, 
+    TYPE_UPDATING_ERROR, 
+} = require('../errors/error-msg-list')
 const { Type , User} = require('../models')
 
 const createTypeInDB = async (type) => { // create type
-    if(!type.movement || !type.name || !type.created_at || !type.creator || typeof type.default === 'undefined') return
+    if( !type.movement || 
+        !type.name || 
+        !type.created_at || 
+        !type.creator || 
+        typeof type.default === 'undefined') throw new Error(NOT_ENOUGH_DATA)
     try {
         const typeCreated = await Type.create(type)
         return typeCreated
     } catch(error) {
-        throw new Error('Cant create type', error)
+        throw new Error(TYPE_CREATION_ERROR)
     }
 }
 
 const getTypeByIdFromDB = async (typeId) => {
-    if(!typeId) return
+    if(!typeId) throw new Error(NOT_ENOUGH_DATA)
     where = {id: typeId}
     try {
         const type = await Type.findAll({where,raw:true})
         if(type.length>0) return type[0]
-        return null
+        else return null // type not founded
     } catch(error) {
-        throw new Error('Cant get items', error)
+        throw new Error(TYPE_SEARCHING_ERROR)
     }
 }  
 
@@ -34,41 +44,40 @@ const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement,
         if(types.length>0) {
             if(types.length === 1) return types[0]
             return types
-        }
-        return null
+        } else return null
     } catch(error) {
-        throw new Error('Cant get types', error)
+        throw new Error(TYPE_SEARCHING_ERROR)
     }
 }
 
 const getTypesByCreatorIdFromDB = async (creatorId) => {
-    if(!creatorId) return
+    if(!creatorId) throw new Error(NOT_ENOUGH_DATA)
     const where = {creator: creatorId}
     try {
         const types = await Type.findAll({where,raw:true})
         if(types.length>0) {
+            if(types.length === 1) return types[0]
             return types
-        }
-        return null
+        } else return null
     } catch(error) {
-        throw new Error('Cant get types', error)
+        throw new Error(TYPE_SEARCHING_ERROR)
     }
 }
 
 const deleteTypeByIdInDB = async (typeId) => {
-    if(!typeId) return
+    if(!typeId) throw new Error(NOT_ENOUGH_DATA)
     const where = {id:typeId}
     try {
         const typeToDelete = await Type.findAll({where,raw:true})
         await Type.destroy({where})
         return typeToDelete[0]
     } catch(error){
-        throw new Error('Cant delete types', error)
+        throw new Error(TYPE_DELETING_ERROR)
     }
 }
 
 const updateTypeByIdInDB = async (values) => { // values must contain type id
-    if(!values.id || !values.name || !values.movement) return
+    if(!values.id || !values.name || !values.movement) throw new Error(NOT_ENOUGH_DATA)
     const where = {id:values.id}
     const newValues = {
         name:values.name,
@@ -79,7 +88,7 @@ const updateTypeByIdInDB = async (values) => { // values must contain type id
         const type = await Type.findAll({where,raw:true})
         return type[0]
     } catch(error){
-        throw new Error('Cant get types', error)
+        throw new Error(TYPE_UPDATING_ERROR)
     }
 }
 
