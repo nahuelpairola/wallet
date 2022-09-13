@@ -1,6 +1,5 @@
-
-const { NOT_ENOUGH_DATA, TYPE_SEARCHING_ERROR, TYPE_CREATION_ERROR, TYPE_DELETING_ERROR, TYPE_UPDATING_ERROR } = require('../errors/error-msg-list')
 const {
+    isMovement,
     createTypeInDB,
     getTypeByIdFromDB,
     getTypesByFilterFromDB,
@@ -9,12 +8,22 @@ const {
     updateTypeByIdInDB,
 } = require('../repository/type')
 
+const { 
+    NOT_ENOUGH_DATA, 
+    TYPE_SEARCHING_ERROR,
+    TYPE_CREATION_ERROR,
+    TYPE_DELETING_ERROR,
+    TYPE_UPDATING_ERROR, 
+} = require('../errors/error-msg-list')
+
+const {ServiceError} = require('../errors')
+
 const storeType = async (values) => {
     if(!values.movement || 
         !values.name || 
         !values.creator || 
         typeof values.default === 'undefined') {
-        throw new Error(NOT_ENOUGH_DATA)
+        throw new ServiceError(NOT_ENOUGH_DATA)
     }
     const type = { // type to create
         movement: values.movement,
@@ -37,7 +46,7 @@ const storeType = async (values) => {
                     const storedDefaultType = await createTypeInDB(type)
                     return storedDefaultType
                 } catch(error) {
-                    throw new Error(TYPE_CREATION_ERROR)
+                    throw new ServiceError(TYPE_CREATION_ERROR)
                 }
             } else if (values.default === false) {
                 // check if that user has not a custom type with the same values
@@ -53,13 +62,13 @@ const storeType = async (values) => {
                             const storedCustomType = await createTypeInDB(type)
                             return storedCustomType
                         } catch(error) {
-                            throw new Error(TYPE_CREATION_ERROR)
+                            throw new ServiceError(TYPE_CREATION_ERROR)
                         }
                     } else {
                         return customType
                     }
                 } catch(error){
-                    throw new Error(TYPE_SEARCHING_ERROR)
+                    throw new ServiceError(TYPE_SEARCHING_ERROR)
                 }
             }
         }
@@ -67,7 +76,7 @@ const storeType = async (values) => {
             return typeByDefaultMatched
         }
     } catch(error) {
-        throw new Error(TYPE_SEARCHING_ERROR)
+        throw new ServiceError(TYPE_SEARCHING_ERROR)
     }
     return null
 }
@@ -82,52 +91,52 @@ const getTypesByFilter = async (values) => {
     try {
         const types = await getTypesByFilterFromDB(filter)
         if(types) return types
-        return null
+        else return null
     } catch (error) {
-        throw new Error(TYPE_SEARCHING_ERROR)
+        throw new ServiceError(TYPE_SEARCHING_ERROR)
     }
 }
 
 const getTypesByCreatorId = async (userId) => { // id: crerator id
-    if(!userId) throw new Error(NOT_ENOUGH_DATA)
+    if(!userId) throw new ServiceError(NOT_ENOUGH_DATA)
     try { 
         const types = await getTypesByCreatorIdFromDB(userId)
         if(types) return types
         else return null
     } catch (error) {
-        throw new Error(TYPE_SEARCHING_ERROR)
+        throw new ServiceError(TYPE_SEARCHING_ERROR)
     }
 }
 
 const getTypeById = async (id) => {
-    // the type can be a default or a custom one (this one must be of the creator)
-    if(!id) throw new Errror(NOT_ENOUGH_DATA)
+    // the type can be a default or a custom one
+    if(!id) throw new ServiceError(NOT_ENOUGH_DATA)
     try {
         const type = await getTypeByIdFromDB(id)
         if(type) return type
         else return null
     } catch(error) {
-        throw new Error(TYPE_SEARCHING_ERROR)
+        throw new ServiceError(TYPE_SEARCHING_ERROR)
     }
 }
 
 const deleteTypeById = async (id) => {
-    if(!id) throw new Error(NOT_ENOUGH_DATA)
+    if(!id) throw new ServiceError(NOT_ENOUGH_DATA)
     const typeToDelete = await getTypeByIdFromDB(id) // check if the type is not a default type
     if(typeToDelete) {
         try {
             const deletedType = await deleteTypeByIdInDB(id)
             return deletedType
         } catch (error) {
-            throw new Error(TYPE_DELETING_ERROR)
+            throw new ServiceError(TYPE_DELETING_ERROR)
         }
     } else {
-        return null
+        throw new ServiceError(TYPE_DELETING_ERROR)
     }
 }
 
 const updateTypeById = async (values) => {
-    if(!values.id || !values.movement || !values.name) throw new Error(NOT_ENOUGH_DATA)
+    if(!values.id || !values.movement || !values.name) throw new ServiceError(NOT_ENOUGH_DATA)
     try {
         const typeMatched = await getTypeByIdFromDB(values.id)
         if(typeMatched) {
@@ -137,11 +146,12 @@ const updateTypeById = async (values) => {
             return null
         }
     } catch (error) {
-        throw new Error(TYPE_UPDATING_ERROR)
+        throw new ServiceError(TYPE_UPDATING_ERROR)
     }
 }
 
 module.exports = {
+    isMovement,
     storeType,
     getTypeById,
     getTypesByFilter,

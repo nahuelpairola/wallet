@@ -1,4 +1,6 @@
 
+const { ServiceError } = require('../errors')
+const { NOT_ENOUGH_DATA, AMOUNT_CREATION_ERROR, AMOUNT_SEARCHING_ERROR, AMOUNT_DELETING_ERROR } = require('../errors/error-msg-list')
 const {
     createAmountInDB,
     getAmountByIdFromDB,
@@ -9,9 +11,12 @@ const {
     updateAmountValuesInDB,
 } = require('../repository/amount')
 
-const {getTypesByCreatorId, getTypesByFilter, getTypeById} = require('../services/type')
+const {
+    isMovement,
+    getTypeById
+} = require('../services/type')
 
-const getAmountsByFilter = async (values) => {
+const getAmountsByFilterWithCreatorId = async (values) => {
     if(!values.creator) return
     const filter = { // create filter object
         creator:values.creator
@@ -67,12 +72,11 @@ const getAmountsByFilter = async (values) => {
         })
     }
 
-    if(values.type) {
-        const types = (values.type).split(',')
+    if(values.amountType) {
+        const types = (values.amountType).split(',')
         types.forEach((type)=>{
             data = data.filter(amount => {
                 return (amount['type.name'] === type)
-
             })
         })
     }
@@ -81,57 +85,55 @@ const getAmountsByFilter = async (values) => {
 }
 
 const getAmountById = async (amountId) => {
-    if(!amountId) return
-
+    if(!amountId) throw new ServiceError(NOT_ENOUGH_DATA)
     try {
         const amount = await getAmountByIdFromDB(amountId)
         return amount
     } catch (error) {
-        console.log(error);
-        return
+        throw new ServiceError(AMOUNT_SEARCHING_ERROR,error)
     }
 }
 
 const storeAmount = async (values) => {
-    if(!values.quantity || !values.type || !values.creator) return
+    if( !values.quantity || 
+        !values.amountType || 
+        !values.creator) throw new ServiceError(NOT_ENOUGH_DATA)
 
-    const amount = {
-                quantity:values.quantity,
-                type:Number(values.type),
-                created_at: new Date(),
-                creator:Number(values.creator)
-                }
+    const amountToCreate = {
+        quantity:Number(values.quantity),
+        amountType: Number(values.amountType),
+        created_at: new Date(),
+        creator:Number(values.creator)
+    }
     try {
-        let result = await createAmountInDB(amount)
-        const type = await getTypeById(amount.type)
-        result.type = {id:type.id,movement:type.movement,name:type.name,default:type.default}
-        return result
+        const amountCreated = await createAmountInDB(amountToCreate)
+        return amountCreated
     } catch(error) {
-        console.log(error)
-        return 
+        throw new ServiceError(AMOUNT_CREATION_ERROR,error)
     }
 }
 
 const deleteAmountById = async (id) => {
-    if(!id) return
-    
+    if(!id) throw new ServiceError(NOT_ENOUGH_DATA)
     try {
         const amountToDelete = await getAmountByIdFromDB(id)
         await deleteAmountByIdInDB(id)
         return amountToDelete
     } catch (error) {
-        console.log(error)
-        return
+        throw new ServiceError(AMOUNT_DELETING_ERROR,error)
     }
 }
 
 const updateAmountById = async (values) => {
+    console.log(values);
+    return
 }
 
 module.exports = {
-    getAmountsByFilter,
+    getAmountsByFilterWithCreatorId,
     getAmountById,
     storeAmount,
     deleteAmountById,
     updateAmountById,
+    isMovement,
 }

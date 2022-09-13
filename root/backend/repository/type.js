@@ -1,35 +1,37 @@
 
-const { NOT_ENOUGH_DATA,
+const { 
+    NOT_ENOUGH_DATA,
     TYPE_CREATION_ERROR, 
     TYPE_SEARCHING_ERROR, 
     TYPE_DELETING_ERROR, 
     TYPE_UPDATING_ERROR, 
 } = require('../errors/error-msg-list')
-const { Type , User} = require('../models')
+const {RepositoryError} = require('../errors')
+const { Type } = require('../models')
 
 const createTypeInDB = async (type) => { // create type
     if( !type.movement || 
         !type.name || 
         !type.created_at || 
         !type.creator || 
-        typeof type.default === 'undefined') throw new Error(NOT_ENOUGH_DATA)
+        typeof type.default === 'undefined') throw new RepositoryError(NOT_ENOUGH_DATA)
     try {
         const typeCreated = await Type.create(type)
         return typeCreated
     } catch(error) {
-        throw new Error(TYPE_CREATION_ERROR)
+        throw new RepositoryError(TYPE_CREATION_ERROR)
     }
 }
 
 const getTypeByIdFromDB = async (typeId) => {
-    if(!typeId) throw new Error(NOT_ENOUGH_DATA)
+    if(!typeId) throw new RepositoryError(NOT_ENOUGH_DATA)
     where = {id: typeId}
     try {
         const type = await Type.findAll({where,raw:true})
         if(type.length>0) return type[0]
         else return null // type not founded
     } catch(error) {
-        throw new Error(TYPE_SEARCHING_ERROR)
+        throw new RepositoryError(TYPE_SEARCHING_ERROR)
     }
 }  
 
@@ -46,12 +48,12 @@ const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement,
             return types
         } else return null
     } catch(error) {
-        throw new Error(TYPE_SEARCHING_ERROR)
+        throw new RepositoryError(TYPE_SEARCHING_ERROR)
     }
 }
 
 const getTypesByCreatorIdFromDB = async (creatorId) => {
-    if(!creatorId) throw new Error(NOT_ENOUGH_DATA)
+    if(!creatorId) throw new RepositoryError(NOT_ENOUGH_DATA)
     const where = {creator: creatorId}
     try {
         const types = await Type.findAll({where,raw:true})
@@ -60,24 +62,26 @@ const getTypesByCreatorIdFromDB = async (creatorId) => {
             return types
         } else return null
     } catch(error) {
-        throw new Error(TYPE_SEARCHING_ERROR)
+        throw new RepositoryError(TYPE_SEARCHING_ERROR)
     }
 }
 
 const deleteTypeByIdInDB = async (typeId) => {
-    if(!typeId) throw new Error(NOT_ENOUGH_DATA)
+    if(!typeId) throw new RepositoryError(NOT_ENOUGH_DATA)
     const where = {id:typeId}
     try {
         const typeToDelete = await Type.findAll({where,raw:true})
         await Type.destroy({where})
         return typeToDelete[0]
     } catch(error){
-        throw new Error(TYPE_DELETING_ERROR)
+        throw new RepositoryError(TYPE_DELETING_ERROR)
     }
 }
 
 const updateTypeByIdInDB = async (values) => { // values must contain type id
-    if(!values.id || !values.name || !values.movement) throw new Error(NOT_ENOUGH_DATA)
+    if( !values.id || 
+        !values.name || 
+        !values.movement) throw new RepositoryError(NOT_ENOUGH_DATA)
     const where = {id:values.id}
     const newValues = {
         name:values.name,
@@ -88,7 +92,7 @@ const updateTypeByIdInDB = async (values) => { // values must contain type id
         const type = await Type.findAll({where,raw:true})
         return type[0]
     } catch(error){
-        throw new Error(TYPE_UPDATING_ERROR)
+        throw new RepositoryError(TYPE_UPDATING_ERROR)
     }
 }
 

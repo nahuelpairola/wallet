@@ -1,16 +1,21 @@
 const {StatusCodes} = require('http-status-codes')
 
-const { getAmountsByFilter,
+const { getAmountsByFilterWithCreatorId,
         getAmountById,
         storeAmount,
         deleteAmountById,
         updateAmountById,
+        isMovement,
+
     } = require('../services/amount')
 
 const {getTypesByFilter,
     } = require('../services/type')
 
-const getAmounts = async (req,res) => {
+const {BadRequestError, NotFoundError, UnauthenticatedError} = require('../errors')
+const { PROVIDE_ALL_DATA, PROVIDE_CORRECT_DATA, TYPE_NOT_FOUND, TYPE_SEARCHING_ERROR, AMOUNT_CREATION_ERROR } = require('../errors/error-msg-list')
+
+const getAmounts = async (req,res,next) => {
     const {
         quantity:quantity,
         created_at:created_at,
@@ -21,21 +26,20 @@ const getAmounts = async (req,res) => {
     const creator = req.user // add user id to filter obj
 
     const filter = {}
-    filter.creator = creator.id
-
     if(quantity) filter.quantity = quantity
     if(created_at) filter.created_at = created_at
     if(movement) filter.movement = movement
-    if(type) filter.type = type
+    if(type) filter.amountType = type
+    filter.creator = creator.id
     try {
-        const amounts = await getAmountsByFilter(filter)
+        const amounts = await getAmountsByFilterWithCreatorId(filter)
         res.status(StatusCodes.OK).send({Hits: amounts.length,User: req.user.email, Amounts: amounts})
     } catch (error) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Internal Server Error'})
     }
 }
 
-const createAmount = async (req,res) => {
+const createAmount = async (req,res,next) => {
     const {
         quantity:quantity,
         movement:movement,
@@ -45,40 +49,48 @@ const createAmount = async (req,res) => {
     } = req.body
 
     if(!quantity || !movement || !typeName) {
-        res.status(StatusCodes.BAD_REQUEST).json({msg:'Please provide all data'})
+        throw new BadRequestError(PROVIDE_ALL_DATA)
     }
+
+    if(movement !== 'input' && movement !== 'output') return next(new BadRequestError(PROVIDE_CORRECT_DATA))
     
-    const creatorId = req.user.id
+    const creator = req.user
     let typeId = null
 
     try {
         // check if type is default or custom
         const filter = {movement:movement, name:typeName}
         const typeMatched = await getTypesByFilter(filter)
-        if(!typeMatched || typeMatched.default===false && typeMatched.creator !== creatorId){
-            return res.status(StatusCodes.NOT_FOUND).json({msg:'Type not found'})
-        } else {
-            typeId = typeMatched.id
+        if(!typeMatched) {
+            return next(new NotFoundError(TYPE_NOT_FOUND))
+        } 
+        if (typeMatched.default===false && typeMatched.creator !== creator.id){
+            return next(new UnauthenticatedError(TYPE_NOT_FOUND))
         }
-    } catch(error){
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Cant create Amount'})
+        typeId = typeMatched.id
+    } catch(error) {
+        throw new Error(error)
     }
 
-    const newAmount = {quantity:quantity,type:typeId,creator:creatorId}
+    const amountToCreate = {
+        quantity:quantity,
+        amountType:typeId,
+        creator:creator.id
+    }
 
     try {
-        const amountCreated = await storeAmount(newAmount)
-        if(!amountCreated) res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Cant create Amount'})
-        else res.status(StatusCodes.CREATED).send({
+        const amountCreated = await storeAmount(amountToCreate)
+        const newAmount = await getAmountById(amountCreated.id)
+        res.status(StatusCodes.CREATED).send({
             User:req.user.email,
-            AmountCreated:result
+            AmountCreated:newAmount
         })
     } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Cant create Amount'})
+        console.log(error);
     }
 }
 
-const deleteAmount = async (req,res) => {
+const deleteAmount = async (req,res,next) => {
     const {id:id} = req.params
     
     try {
@@ -101,7 +113,7 @@ const deleteAmount = async (req,res) => {
     }
 }
 
-const updateAmount = async (req,res) => {
+const updateAmount = async (req,res,next) => {
     const {id:id} = req.params
     const {
         quantity:quantity,

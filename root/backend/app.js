@@ -22,12 +22,12 @@ const typeRoutes = require('./routes/type')
 app.use('/api/v1/amount', authenticationMiddleware, amountRoutes)
 app.use('/api/v1/type', authenticationMiddleware, typeRoutes)
 app.use('/api/v1/user', userRoutes)
-
-app.use(errorHandlerMiddleware)
 app.use(notFoundMiddleware)
+app.use(errorHandlerMiddleware)
+
 
 // start
-const port = process.env.PORT
+const port = process.env.PORT 
 
 const start = async () => {
     try {
