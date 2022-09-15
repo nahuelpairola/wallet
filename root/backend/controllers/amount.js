@@ -5,8 +5,6 @@ const { getAmountsByFilterWithCreatorId,
         storeAmount,
         deleteAmountById,
         updateAmountById,
-        isMovement,
-
     } = require('../services/amount')
 
 const {getTypesByFilter,
@@ -52,42 +50,33 @@ const createAmount = async (req,res,next) => {
         throw new BadRequestError(PROVIDE_ALL_DATA)
     }
 
-    if(movement !== 'input' && movement !== 'output') return next(new BadRequestError(PROVIDE_CORRECT_DATA))
+    if(movement !== 'input' && movement !== 'output') throw new BadRequestError(PROVIDE_CORRECT_DATA)
     
     const creator = req.user
     let typeId = null
 
-    try {
-        // check if type is default or custom
-        const filter = {movement:movement, name:typeName}
-        const typeMatched = await getTypesByFilter(filter)
-        if(!typeMatched) {
-            return next(new NotFoundError(TYPE_NOT_FOUND))
-        } 
-        if (typeMatched.default===false && typeMatched.creator !== creator.id){
-            return next(new UnauthenticatedError(TYPE_NOT_FOUND))
-        }
-        typeId = typeMatched.id
-    } catch(error) {
-        throw new Error(error)
+    // check if type is default or custom
+    const filter = {movement:movement, name:typeName}
+    const typeMatched = await getTypesByFilter(filter)
+    if(!typeMatched) {
+        throw new NotFoundError(TYPE_NOT_FOUND)
+    } 
+    if (typeMatched.default===false && typeMatched.creator !== creator.id){
+        throw new UnauthenticatedError(TYPE_NOT_FOUND)
     }
+    typeId = typeMatched.id
 
     const amountToCreate = {
         quantity:quantity,
         amountType:typeId,
         creator:creator.id
     }
-
-    try {
-        const amountCreated = await storeAmount(amountToCreate)
-        const newAmount = await getAmountById(amountCreated.id)
-        res.status(StatusCodes.CREATED).send({
-            User:req.user.email,
-            AmountCreated:newAmount
-        })
-    } catch (error) {
-        console.log(error);
-    }
+    const amountCreated = await storeAmount(amountToCreate)
+    const newAmount = await getAmountById(amountCreated.id)
+    res.status(StatusCodes.CREATED).send({
+        User:req.user.email,
+        AmountCreated:newAmount
+    })
 }
 
 const deleteAmount = async (req,res,next) => {

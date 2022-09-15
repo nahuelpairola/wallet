@@ -14,6 +14,8 @@ const { PASSWORD_INCORRECT,
         USER_NOT_FOUND,
         NOT_ENOUGH_DATA} = require('../errors/error-msg-list')
 
+const { ServiceError } = require('../errors')
+
 // check password, return token
 const getTokenByUser = async (user) => {
 
@@ -25,7 +27,7 @@ const getTokenByUser = async (user) => {
         // check password
         const isMatch = await bcrypt.compare(user.password, userMatched.password)
         if ( !isMatch ) {
-            throw new Error(PASSWORD_INCORRECT)
+            throw new ServiceError(PASSWORD_INCORRECT)
         }
         // generate token
         const token = jwt.sign({email: user.email},
@@ -39,11 +41,11 @@ const getTokenByUser = async (user) => {
 // check user by token
 const getUserByToken = async (token) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET)
-    if(!payload) throw new Error(TOKEN_UNAUTHORIZED)
+    if(!payload) throw new ServiceError(TOKEN_UNAUTHORIZED)
     
     const userMatched = await getUserByEmailFromDB(payload.email)
 
-    if(!userMatched) throw new Error(USER_NOT_FOUND)
+    if(!userMatched) throw new ServiceError(USER_NOT_FOUND)
     return userMatched
 }
 
@@ -52,7 +54,7 @@ const createUser = async (user) => {
     if(!user.first_name ||
         !user.last_name || 
         !user.email ||
-        !user.password) throw new Error(NOT_ENOUGH_DATA)
+        !user.password) throw new ServiceError(NOT_ENOUGH_DATA)
 
     // check if emails user exists
     const userMatched = await getUserByEmailFromDB(user.email)

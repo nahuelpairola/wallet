@@ -1,32 +1,25 @@
-const { USER_SEARCHING_ERROR, USER_CREATION_ERROR, NOT_ENOUGH_DATA } = require('../errors/error-msg-list')
 const { User } = require('../models')
+const {RepositoryError} = require('../errors')
+const { NOT_ENOUGH_DATA } = require('../errors/error-msg-list')
 
 const getUserByEmailFromDB = async (userEmail) => {
-    if(!userEmail) return null
-    try {
-        const where = {email:userEmail}
-        const user = await User.findAll({where,raw:true})
-        if(!user) {
-            return null
-        }
-        if(user.length>0) {
-            return user[0]
-        } 
-    } catch (error) {
-        throw new Error(USER_SEARCHING_ERROR)
+    if(!userEmail) throw new RepositoryError(NOT_ENOUGH_DATA)
+    const where = {email:userEmail}
+    const user = await User.findAll({where,raw:true})
+    if(!user) {
+        return null
+    }
+    if(user.length>0) {
+        return user[0]
     }
 }
 
 const getUserByIdFromDB = async (userId) => {
-    if(!userId) return 
+    if(!userId) throw new RepositoryError(NOT_ENOUGH_DATA) 
     const where = {id:userId}
-    try {
-        const user = await User.findAll({where,raw:true})
-        if(user.length>0) {
-            return user[0]
-        }
-    } catch(error) {
-        throw new Error(USER_SEARCHING_ERROR)
+    const user = await User.findAll({where,raw:true})
+    if(user.length>0) {
+        return user[0]
     }
 }
 
@@ -35,46 +28,33 @@ const createUserInDB = async (user) => {
         !user.last_name||
         !user.email||
         !user.password||
-        !user.created_at) throw new Error(NOT_ENOUGH_DATA)
-    try {
-        const result = await User.create(user)
-        return result
-    } catch(error) {
-        throw new Error(USER_CREATION_ERROR)
-    }
+        !user.created_at) throw new RepositoryError(NOT_ENOUGH_DATA)
+    const result = await User.create(user)
+    return result
 }
 
 const deleteUserByIdInDB = async (userId) => {
-    if(!userId) return
+    if(!userId) throw new RepositoryError(NOT_ENOUGH_DATA)
     const where = {id:userId}
-    try{
-        const userDeleted = await User.findAll({where,raw:true})
-        await User.destroy({where})
-        return userDeleted
-    } catch(error){
-        console.log(error)
-        return
-    }
+    const userDeleted = await User.findAll({where,raw:true})
+    await User.destroy({where})
+    return userDeleted
 }
 
 const updateUserByIdInDB = async (values) => { 
-    if(!values.id || !values.first_name || !values.last_name || !values.email) {
-        return
-    }
+    if( !values.id ||
+        !values.first_name || 
+        !values.last_name || 
+        !values.email) throw new RepositoryError(NOT_ENOUGH_DATA)
     const where = {id:values.id}
     const newValues = {
         first_name: values.first_name, 
         last_name: values.last_name, 
         email:values.email
     }
-    try{
-        await User.update(newValues,{where})
-        const userUpdated = await User.findAll({where,raw:true})
-        return userUpdated
-    } catch(error){
-        console.log(error)
-        return
-    }
+    await User.update(newValues,{where})
+    const userUpdated = await User.findAll({where,raw:true})
+    return userUpdated
 }
 
 module.exports = {

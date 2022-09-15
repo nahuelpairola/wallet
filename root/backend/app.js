@@ -1,7 +1,8 @@
-require('express-async-errors')
 require('dotenv').config()
 
 const express = require('express')
+require('express-async-errors')
+
 const app = express()
 
 app.use(express.json())
