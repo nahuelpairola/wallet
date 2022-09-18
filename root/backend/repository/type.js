@@ -69,7 +69,10 @@ const updateNameAndMovementInTypeByIdInDB = async (idNameAndMovement) => { // va
         movement: idNameAndMovement.movement
     }
     await Type.update(newNameAndMovement,{where})
-    const type = await Type.findAll({where,raw:true})
+    const type = await Type.findAll({
+        where,
+        raw:true
+    })
     return type[0]
 }
 

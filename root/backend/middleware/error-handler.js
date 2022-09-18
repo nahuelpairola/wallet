@@ -21,6 +21,15 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
   console.log('Path: ', req.path)
   console.log(error)
   
+  switch (error.name) {
+    case value:
+      
+      break;
+  
+    default:
+      break;
+  }
+
   let CustomError = {
     msg: error.message,// || 'Internal Server Error',
     error: error,

@@ -7,7 +7,7 @@ const createAmountInDB = async (amountToCreate) => {
     if( !amountToCreate.quantity || 
         !amountToCreate.amountType || 
         !amountToCreate.creator || 
-        !amountToCreate.created_at) throw new Error(NOT_ENOUGH_DATA)
+        !amountToCreate.created_at) throw new RepositoryError(NOT_ENOUGH_DATA)
     const amountCreated = await Amount.create(amountToCreate)
     return amountCreated
 }

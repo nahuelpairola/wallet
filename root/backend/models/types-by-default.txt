@@ -6,6 +6,7 @@ Movement - Name
 
 input - salary
 input - other -> (another input money)
+input - not defined -> Used in amounts with erased type
 
 
 output - taxes
@@ -22,4 +23,5 @@ output - recreation
 output - saving	
 output - phone
 output - vehicle
-output - other	
+output - other -> (another output money)
+output - not defined -> Used in amounts with erased type

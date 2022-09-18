@@ -6,9 +6,7 @@ const getUserByEmailFromDB = async (userEmail) => {
     if(!userEmail) throw new RepositoryError(NOT_ENOUGH_DATA)
     const where = {email:userEmail}
     const user = await User.findAll({where,raw:true})
-    if(!user) {
-        return null
-    }
+    if(!user) return null
     if(user.length>0) {
         return user[0]
     }

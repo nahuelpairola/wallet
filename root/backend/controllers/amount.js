@@ -2,7 +2,7 @@ const {StatusCodes} = require('http-status-codes')
 
 const { getAmountsByFilterWithCreatorId,
         getAmountById,
-        storeAmount,
+        createNewAmount,
         deleteAmountById,
         updateAmountById,
     } = require('../services/amount')
@@ -37,7 +37,7 @@ const getAmounts = async (req,res,next) => {
     }
 }
 
-const createAmount = async (req,res,next) => {
+const createAmount = async (req,res) => {
     const {
         quantity:quantity,
         movement:movement,
@@ -71,35 +71,18 @@ const createAmount = async (req,res,next) => {
         amountType:typeId,
         creator:creator.id
     }
-    const amountCreated = await storeAmount(amountToCreate)
+    const amountCreated = await createNewAmount(amountToCreate)
     const newAmount = await getAmountById(amountCreated.id)
-    res.status(StatusCodes.CREATED).send({
-        User:req.user.email,
-        AmountCreated:newAmount
-    })
+    res.status(StatusCodes.CREATED).send({ User:req.user.email, AmountCreated: newAmount })
 }
 
-const deleteAmount = async (req,res,next) => {
+const deleteAmount = async (req,res) => {
     const {id:id} = req.params
+    const amount = await getAmountById(id)
+    if(!amount) return res.status(StatusCodes.NOT_FOUND).json({msg:'Amount not found'})
     
-    try {
-        const amount = await getAmountById(id)
-        if(!amount) {
-            return res.status(StatusCodes.NOT_FOUND).json({msg:'Amount not found'})
-        }
-    } catch(error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Internal Server Error'})
-    }
-
-    try {
-        const amountDeleted = await deleteAmountById(id)
-        res.status(StatusCodes.OK).json({
-            User:req.user.email,
-            AmountDeleted:amountDeleted
-        })
-    } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Internal Server Error'})
-    }
+    const amountDeleted = await deleteAmountById(id)
+|   res.status(StatusCodes.OK).json({ User:req.user.email, AmountDeleted:amountDeleted })
 }
 
 const updateAmount = async (req,res,next) => {

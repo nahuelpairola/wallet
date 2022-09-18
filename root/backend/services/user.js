@@ -12,29 +12,25 @@ const {
 const { PASSWORD_INCORRECT,
         TOKEN_UNAUTHORIZED,
         USER_NOT_FOUND,
-        NOT_ENOUGH_DATA} = require('../errors/error-msg-list')
+        NOT_ENOUGH_DATA,
+        PROVIDE_ALL_DATA} = require('../errors/error-msg-list')
 
 const { ServiceError } = require('../errors')
 
 // check password, return token
-const getTokenByUser = async (user) => {
-
+const getTokenByEmailAndPassword = async (emailAndPassword) => {
     // check if emails user exists
-    const userMatched = await getUserByEmailFromDB(user.email)
-    if(!userMatched){
-        return null
-    } else {
+    const userMatched = await getUserByEmailFromDB(emailAndPassword.email)
+    if(!userMatched) return null
+    else {
         // check password
-        const isMatch = await bcrypt.compare(user.password, userMatched.password)
-        if ( !isMatch ) {
-            throw new ServiceError(PASSWORD_INCORRECT)
-        }
+        const isMatch = await bcrypt.compare(emailAndPassword.password, userMatched.password)
+        if ( !isMatch ) throw new ServiceError(PASSWORD_INCORRECT)
         // generate token
-        const token = jwt.sign({email: user.email},
+        const token = jwt.sign({email: userMatched.email},
                                 process.env.JWT_SECRET,
                                 {expiresIn:process.env.JWT_LIFETIME})
-    
-        return ( { email: user.email, token: token } ) // return email and token
+        return token // return token
     }
 }
 
@@ -87,8 +83,15 @@ const createUser = async (user) => {
     }    
 }
 
+const isUserAnAdmin = (user) => {
+    if(!user.role) throw new ServiceError(PROVIDE_ALL_DATA)
+    if(user.role === 'admin') return true
+    else return false
+}
+
 module.exports = {
     createUser,
-    getTokenByUser,
+    getTokenByEmailAndPassword,
     getUserByToken,
+    isUserAnAdmin,
 }
