@@ -37,23 +37,21 @@ const createNewType = async (newType) => {
     if (!typeByDefaultMatched) { // if theres not default type matched
         if (newType.default) { 
             const createdDefaultType = await createTypeInDB(typeToCreate) // if the type to create is a default one, create it
-            return deleteCreatorOfEachType(createdDefaultType) // returns new type by default
+            return (deleteCreatorOfEachType(createdDefaultType)) // returns new type by default
         } else { // new type should be a custom one
-            // check if that user has not a custom type with the same values
-            const customType = await getTypesByFilter({
+            // check if the user has not a custom type with the same values
+            const customTypeMatched = await getTypesByFilter({
                 movement: typeToCreate.movement,
                 name: typeToCreate.name,
                 creator: typeToCreate.creator,
                 default: false
             })
-            if (!customType) { // if not exists, create a new custom type
+            if (!customTypeMatched) { // if not exists, create a new custom type
                 const storedCustomType = await createTypeInDB(typeToCreate)
-                return deleteCreatorOfEachType(storedCustomType)
-            } else return deleteCreatorOfEachType(customType)
+                return (deleteCreatorOfEachType(storedCustomType))
+            } else return deleteCreatorOfEachType(customTypeMatched)
         }
-    } else { 
-        return deleteCreatorOfEachType(typeByDefaultMatched)
-    }
+    } else return deleteCreatorOfEachType(typeByDefaultMatched)
 }
 
 const getTypesByFilter = async (values) => {
@@ -73,7 +71,7 @@ const getDefaultTypes = async () => {
     else return defaultTypes
 }
 
-const getTypesByCreatorId = async (creatorId) => { // id: crerator id
+const getTypesByCreatorId = async (creatorId) => { // id: creator id
     if (!creatorId) throw new ServiceError(NOT_ENOUGH_DATA)
     const types = await getTypesByCreatorIdFromDB(creatorId)
     if (types) return types

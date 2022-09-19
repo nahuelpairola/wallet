@@ -10,7 +10,8 @@ const createTypeInDB = async (newType) => { // create type
         !newType.creator || 
         typeof newType.default === 'undefined') throw new RepositoryError(NOT_ENOUGH_DATA)
     const typeCreated = await Type.create(newType)
-    return typeCreated
+    const typeCreatedRaw = typeCreated.dataValues 
+    return typeCreatedRaw
 }
 
 const getTypeByIdFromDB = async (typeId) => {
