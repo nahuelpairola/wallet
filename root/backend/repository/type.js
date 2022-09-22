@@ -1,6 +1,6 @@
 
-const { NOT_ENOUGH_DATA, } = require('../errors/error-msg-list')
-const { RepositoryError } = require('../errors')
+const { NOT_ENOUGH_DATA, PROVIDE_CORRECT_DATA, } = require('../errors/error-msg-list')
+const { RepositoryError, BadRequestError } = require('../errors')
 const { Type } = require('../models')
 
 const createTypeInDB = async (newType) => { // create type
@@ -10,7 +10,7 @@ const createTypeInDB = async (newType) => { // create type
         !newType.creator || 
         typeof newType.default === 'undefined') throw new RepositoryError(NOT_ENOUGH_DATA)
     const typeCreated = await Type.create(newType)
-    const typeCreatedRaw = typeCreated.dataValues 
+    const typeCreatedRaw = typeCreated.dataValues
     return typeCreatedRaw
 }
 
@@ -77,6 +77,12 @@ const updateNameAndMovementInTypeByIdInDB = async (idNameAndMovement) => { // va
     return type[0]
 }
 
+const isMovement = (movementToCompare) => {
+    const isMatch = Type.rawAttributes.movement.values.includes(movementToCompare)
+    if(isMatch) return true
+    else return false
+}
+
 module.exports = {
     createTypeInDB,
     getTypeByIdFromDB,
@@ -84,4 +90,5 @@ module.exports = {
     getTypesByCreatorIdFromDB,
     deleteTypeByIdInDB,
     updateNameAndMovementInTypeByIdInDB,
+    isMovement
 }

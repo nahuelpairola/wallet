@@ -5,15 +5,17 @@ const {
     getTypesByCreatorIdFromDB,
     deleteTypeByIdInDB,
     updateNameAndMovementInTypeByIdInDB,
+    isMovement
 } = require('../repository/type')
 
 const {
     NOT_ENOUGH_DATA,
     TYPE_DELETING_ERROR,
     TYPE_NOT_FOUND,
+    PROVIDE_CORRECT_DATA,
 } = require('../errors/error-msg-list')
 
-const { ServiceError } = require('../errors')
+const { ServiceError, BadRequestError } = require('../errors')
 const { isUserAnAdmin } = require('./user')
 
 const createNewType = async (newType) => {
@@ -21,7 +23,8 @@ const createNewType = async (newType) => {
         !newType.name ||
         !newType.creator ||
         typeof newType.default === 'undefined') throw new ServiceError(NOT_ENOUGH_DATA)
-
+    if(!isMovement(newType.movement)) throw new BadRequestError(PROVIDE_CORRECT_DATA)
+        
     const typeToCreate = { // type to create
         movement: newType.movement,
         name: newType.name,
@@ -126,6 +129,19 @@ const getTypeById = async (id) => {
     else return null
 }
 
+const getTypesByMovementNameAndUserId = async ({movement, name, userId}) => {
+    if(!movement || !name || !userId) throw new ServiceError(NOT_ENOUGH_DATA)
+    const typesMatched = await getDefaultAndCustomTypesByUserId(userId)
+    const typesMatchedFiltered = typesMatched.filter((type)=>{
+        return (
+            (type.movement === movement) && 
+            (type.name === name)
+        ) 
+    })
+    if(typesMatchedFiltered.length === 0) return null
+    else return typesMatchedFiltered[0]
+}
+
 const deleteTypeById = async (id) => {
     if (!id) throw new ServiceError(NOT_ENOUGH_DATA)
     const typeToDelete = await getTypeById(id)
@@ -198,9 +214,11 @@ const deleteCreatorOfEachType = (types) => {
 }
 
 module.exports = {
-    createNewType,
-    getTypesByUser,
-    deleteTypeByIdAndCreator,
-    updateTypeByIdAndUser,
-    assignDefaultTypeByCreatorRole,
+    createNewType, // create new type 
+    getTypesByUser, // get types by user
+    getTypesByMovementNameAndUserId,
+    deleteTypeByIdAndCreator, // delete a type
+    updateTypeByIdAndUser, // update a type
+    assignDefaultTypeByCreatorRole, // assign default element of type
+    isMovement, // check if string is a movement
 }

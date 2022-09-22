@@ -30,12 +30,4 @@ const Type = sequelize.define('types', {
     }, { timestamps: false }
 )
 
-const isMovement = (movementToCompare) => {
-    const isMatch = Type.rawAttributes.movement.values.find((movement) => {
-        movement === movementToCompare
-    })
-    if(isMatch) return true
-    else false
-}
-
-module.exports = { Type , isMovement}
+module.exports = { Type }

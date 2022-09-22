@@ -10,22 +10,22 @@ const {
 } = require('../repository/user')
 
 const { PASSWORD_INCORRECT,
-        TOKEN_UNAUTHORIZED,
         USER_NOT_FOUND,
         NOT_ENOUGH_DATA,
-        PROVIDE_ALL_DATA} = require('../errors/error-msg-list')
+        PROVIDE_ALL_DATA,
+        USER_ALREADY_CREATED} = require('../errors/error-msg-list')
 
-const { ServiceError } = require('../errors')
+const { ServiceError, NotFoundError, UnauthenticatedError, BadRequestError } = require('../errors')
 
 // check password, return token
 const getTokenByEmailAndPassword = async (emailAndPassword) => {
     // check if emails user exists
     const userMatched = await getUserByEmailFromDB(emailAndPassword.email)
-    if(!userMatched) return null
+    if(!userMatched) throw new NotFoundError(USER_NOT_FOUND)
     else {
         // check password
         const isMatch = await bcrypt.compare(emailAndPassword.password, userMatched.password)
-        if ( !isMatch ) throw new ServiceError(PASSWORD_INCORRECT)
+        if ( !isMatch ) throw new UnauthenticatedError(PASSWORD_INCORRECT)
         // generate token
         const token = jwt.sign({email: userMatched.email},
                                 process.env.JWT_SECRET,
@@ -36,12 +36,9 @@ const getTokenByEmailAndPassword = async (emailAndPassword) => {
 
 // check user by token
 const getUserByToken = async (token) => {
-    const payload = jwt.verify(token, process.env.JWT_SECRET)
-    if(!payload) throw new ServiceError(TOKEN_UNAUTHORIZED)
-    
+    const payload = jwt.verify(token, process.env.JWT_SECRET)    
     const userMatched = await getUserByEmailFromDB(payload.email)
-
-    if(!userMatched) throw new ServiceError(USER_NOT_FOUND)
+    if(!userMatched) throw new NotFoundError(USER_NOT_FOUND)
     return userMatched
 }
 
@@ -78,12 +75,11 @@ const createUser = async (user) => {
                                 {expiresIn:process.env.JWT_LIFETIME})
 
         return ( { email: user.email, token: token } )
-    } else {
-        return userMatched // user already created
-    }    
+    } else throw new BadRequestError(USER_ALREADY_CREATED)
 }
 
 const isUserAnAdmin = (user) => {
+
     if(!user.role) throw new ServiceError(PROVIDE_ALL_DATA)
     if(user.role === 'admin') return true
     else return false

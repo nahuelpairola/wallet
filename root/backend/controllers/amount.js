@@ -1,19 +1,38 @@
 const {StatusCodes} = require('http-status-codes')
 
-const { getAmountsByFilterWithCreatorId,
-        getAmountById,
-        createNewAmount,
-        deleteAmountById,
-        updateAmountById,
+const { getAmountsByCreatorIdWithFilteringOption,
+        createAmountByQuantityMovementTypeAndCreatorId,
+        deleteAmountByIdAndCreatorId,
+        updateAmountByIdCreatorIdAndNewValues,
     } = require('../services/amount')
 
-const {getTypesByFilter,
-    } = require('../services/type')
+const {isMovement} = require('../services/type')
 
 const {BadRequestError, NotFoundError, UnauthenticatedError} = require('../errors')
-const { PROVIDE_ALL_DATA, PROVIDE_CORRECT_DATA, TYPE_NOT_FOUND, TYPE_SEARCHING_ERROR, AMOUNT_CREATION_ERROR } = require('../errors/error-msg-list')
+const { PROVIDE_ALL_DATA, PROVIDE_CORRECT_DATA } = require('../errors/error-msg-list')
+    
+const createAmount = async (req,res) => {
+    const {
+        quantity:quantity,
+        movement:movement,
+        type:type,
+    } = req.body
 
-const getAmounts = async (req,res,next) => {
+    if(!quantity || !movement || !type) throw new BadRequestError(PROVIDE_ALL_DATA)
+    if(!isMovement(movement)) throw new BadRequestError(PROVIDE_CORRECT_DATA)
+    
+    const creator = req.user
+
+    const amountCreated = await createAmountByQuantityMovementTypeAndCreatorId({
+        quantity: quantity,
+        movement: movement,
+        type: type,
+        creatorId: creator.id
+    })
+    res.status(StatusCodes.CREATED).json({ User: creator.email, AmountCreated: amountCreated })
+}
+
+const getAmounts = async (req,res) => {
     const {
         quantity:quantity,
         created_at:created_at,
@@ -23,90 +42,39 @@ const getAmounts = async (req,res,next) => {
 
     const creator = req.user // add user id to filter obj
 
-    const filter = {}
-    if(quantity) filter.quantity = quantity
-    if(created_at) filter.created_at = created_at
-    if(movement) filter.movement = movement
-    if(type) filter.amountType = type
-    filter.creator = creator.id
-    try {
-        const amounts = await getAmountsByFilterWithCreatorId(filter)
-        res.status(StatusCodes.OK).send({Hits: amounts.length,User: req.user.email, Amounts: amounts})
-    } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg:'Internal Server Error'})
-    }
-}
-
-const createAmount = async (req,res) => {
-    const {
-        quantity:quantity,
-        movement:movement,
-    } = req.body
-    let {
-        type:typeName,
-    } = req.body
-
-    if(!quantity || !movement || !typeName) {
-        throw new BadRequestError(PROVIDE_ALL_DATA)
-    }
-
-    if(movement !== 'input' && movement !== 'output') throw new BadRequestError(PROVIDE_CORRECT_DATA)
+    const filteringOption = {}
+    if(quantity) filteringOption.quantity = quantity
+    if(movement) filteringOption.movement = movement
+    if(type) filteringOption.type = type
+    if(created_at) filteringOption.created_at = created_at
     
-    const creator = req.user
-    let typeId = null
-
-    // check if type is default or custom
-    const filter = {movement:movement, name:typeName}
-    const typeMatched = await getTypesByFilter(filter)
-    if(!typeMatched) {
-        throw new NotFoundError(TYPE_NOT_FOUND)
-    } 
-    if (typeMatched.default===false && typeMatched.creator !== creator.id){
-        throw new UnauthenticatedError(TYPE_NOT_FOUND)
-    }
-    typeId = typeMatched.id
-
-    const amountToCreate = {
-        quantity:quantity,
-        amountType:typeId,
-        creator:creator.id
-    }
-    const amountCreated = await createNewAmount(amountToCreate)
-    const newAmount = await getAmountById(amountCreated.id)
-    res.status(StatusCodes.CREATED).send({ User:req.user.email, AmountCreated: newAmount })
+    const amounts = await getAmountsByCreatorIdWithFilteringOption({creatorId:creator.id,filteringOption})
+    res.status(StatusCodes.OK).json({Hits:amounts.length,User: req.user.email, Amounts: amounts})
 }
 
 const deleteAmount = async (req,res) => {
-    const {id:id} = req.params
-    const amount = await getAmountById(id)
-    if(!amount) return res.status(StatusCodes.NOT_FOUND).json({msg:'Amount not found'})
-    
-    const amountDeleted = await deleteAmountById(id)
+    const {id:amountId} = req.params
+    const amountDeleted = await deleteAmountByIdAndCreadorId(amountId)
 |   res.status(StatusCodes.OK).json({ User:req.user.email, AmountDeleted:amountDeleted })
 }
 
-const updateAmount = async (req,res,next) => {
-    const {id:id} = req.params
+const updateAmount = async (req,res) => {
+    const {id:amountId} = req.params
     const {
         quantity:quantity,
         movement:movement,
-        name:name
+        type:type,
     } = req.body
 
-    const creator = req.user
-    if(!quantity || !movement || !name) res.status(StatusCodes.BAD_REQUEST).send('Please provide id, quantity, movement and name')
-    if(creator.role === 'admin') {
-        // check if the new name and movement exist 
-        try {
-            const filter = {movement:movement, name:name}
-            const typeMatched = await getTypesByFilter(filter)
+    if(!id || !quantity || !movement || !type) throw new BadRequestError(PROVIDE_ALL_DATA)
     
-        } catch (error) {
-            
-        }
-        res.status(200).json({id, quantity, movement, name})
-
-    }
+    const creator = req.user
+    const amountUpdated = await updateAmountByIdCreatorIdAndNewValues({
+        amountId: amountId,
+        creatorId: creator.id,
+        newValues: {quantity, movement, type}
+    })
+    res.status(StatusCodes.OK).json({User: req.user.email, UpdatedAmount: amountUpdated})
 }
 
 module.exports = {

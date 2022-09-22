@@ -1,35 +1,37 @@
 // controller errors
-const ACCESS_UNAUTHORIZED = 'Access Unauthorized'
-const PROVIDE_ALL_DATA = 'Provide All Data'
-const PROVIDE_CORRECT_DATA = 'Provide Correct Data'
-const PASSWORD_INCORRECT = 'Password Incorrect'
-const TOKEN_UNAUTHORIZED = 'Token Unauthorized'
+const ACCESS_UNAUTHORIZED = 'ACCESS UNAUTHORIZED'
+const PROVIDE_ALL_DATA = 'PROVIDE ALL DATA'
+const PROVIDE_CORRECT_DATA = 'PROVIDE CORRECT DATA'
+const PASSWORD_INCORRECT = 'PASSWORD INCORRECT'
+const TOKEN_UNAUTHORIZED = 'TOKEN UNAUTHORIZED'
 
 // service and repository errors
-const NOT_ENOUGH_DATA = 'Not Enough Data'
+const NOT_ENOUGH_DATA = 'NOT ENOUGH DATA'
 
 // user errors
-const USER_NOT_FOUND = 'User Not Found'
-const USER_CREATION_ERROR = 'User Creation Error'
-const USER_ALREADY_CREATED = 'User Already Created'
-const USER_SEARCHING_ERROR = 'User Searching Error'
-const USER_UPDATING_ERROR = 'User Updating Error'
+const USER_NOT_FOUND = 'USER NOT FOUND'
+const USER_CREATION_ERROR = 'USER CREATION ERROR'
+const USER_ALREADY_CREATED = 'USER ALREADY CREATED'
+const USER_SEARCHING_ERROR = 'USER SEARCHING ERROR'
+const USER_UPDATING_ERROR = 'USER UPDATING ERROR'
 
 // type errors
-const TYPE_NOT_FOUND = 'Type Not Found'
-const TYPE_CREATION_ERROR = 'Type Creation Error'
-const TYPE_SEARCHING_ERROR = 'Type Searching Error'
-const TYPE_ALREADY_CREATED = 'Type Already Created'
-const TYPE_DELETING_ERROR = 'Type Deleting Error'
-const TYPE_UPDATING_ERROR = 'Type Updating Error'
+const TYPE_NOT_FOUND = 'TYPE NOT FOUND'
+const TYPE_CREATION_ERROR = 'TYPE CREATION ERROR'
+const TYPE_SEARCHING_ERROR = 'TYPE SEARCHING ERROR'
+const TYPE_ALREADY_CREATED = 'TYPE ALREADY CREATED'
+const TYPE_DELETING_ERROR = 'TYPE DELETING ERROR'
+const TYPE_UPDATING_ERROR = 'TYPE UPDATING ERROR'
  
 // amount errors
-const AMOUNT_NOT_FOUND = 'Amount Not Found'
-const AMOUNT_CREATION_ERROR = 'Amount Creation Error'
+const AMOUNT_NOT_FOUND = 'AMOUNT NOT FOUND'
+const AMOUNT_CREATION_ERROR = 'AMOUNT CREATION ERROR'
 const AMOUNT_SEARCHING_ERROR = 'Amount Searching Error'
 const AMOUNT_ALREADY_CREATED = 'Amount Already Created'
 const AMOUNT_DELETING_ERROR = 'Amount Deleting Error'
 const AMOUNT_UPDATING_ERROR = 'Amount Updating Error'
+
+const PROVIDE_CORRECT_DATA_AMOUNT_SEARCHING_ERROR = PROVIDE_CORRECT_DATA+', '+AMOUNT_SEARCHING_ERROR
 
 module.exports = {
     ACCESS_UNAUTHORIZED,
@@ -59,4 +61,6 @@ module.exports = {
     AMOUNT_ALREADY_CREATED,
     AMOUNT_DELETING_ERROR,
     AMOUNT_UPDATING_ERROR,
+
+    PROVIDE_CORRECT_DATA_AMOUNT_SEARCHING_ERROR,
 }

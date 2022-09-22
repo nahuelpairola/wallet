@@ -37,7 +37,7 @@ const deleteType = async (req,res) => {
     if(!typeIdToDelete) throw new BadRequestError(PROVIDE_ALL_DATA)
     const user = req.user
     const deletedType = await deleteTypeByIdAndCreator({typeId:typeIdToDelete,creator:user})
-    if(!deletedType) res.status(StatusCodes.NOT_FOUND).json(TYPE_NOT_FOUND)
+    if(!deletedType) throw new NotFoundError(TYPE_NOT_FOUND)
     else res.status(StatusCodes.ACCEPTED).json({ User:user.email, DeletedType: deletedType })
 }
 
@@ -54,7 +54,6 @@ const updateType = async (req, res) => {
         movement:movementOfTypeToUpdate,
         user:user
     })
-
     res.status(StatusCodes.OK).json({ User: user.email, UpdatedType: updatedType })
 }
 

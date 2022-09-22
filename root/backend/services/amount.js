@@ -1,6 +1,6 @@
 
-const { ServiceError } = require('../errors')
-const { NOT_ENOUGH_DATA, AMOUNT_CREATION_ERROR, AMOUNT_SEARCHING_ERROR, AMOUNT_DELETING_ERROR } = require('../errors/error-msg-list')
+const { ServiceError, NotFoundError } = require('../errors')
+const { NOT_ENOUGH_DATA, AMOUNT_CREATION_ERROR, TYPE_NOT_FOUND, PROVIDE_CORRECT_DATA, PROVIDE_CORRECT_DATA_AMOUNT_SEARCHING_ERROR, AMOUNT_DELETING_ERROR } = require('../errors/error-msg-list')
 const {
     createAmountInDB,
     getAmountByIdFromDB,
@@ -10,73 +10,94 @@ const {
     deleteAmountByIdInDB,
     updateAmountValuesInDB,
 } = require('../repository/amount')
+const { isMovement } = require('../repository/type')
 
-const {
-    getTypeById
-} = require('../services/type')
+const { getTypesByMovementNameAndUserId } = require('../services/type')
 
-const getAmountsByFilterWithCreatorId = async (values) => {
-    if(!values.creator) return
-    const filter = { // create filter object
-        creator:values.creator
-    }
-    let data = null // where goes the amounts data
-    data = await getAmountsByCreatorIdFromDB(values.creator)
+const isDate = (date) => {
+    return (new Date(date) !== "Invalid Date") && !isNaN(new Date(date));
+}
 
-    if(values.created_at) { // check if there are dates to filter
-        let date = values.created_at // format -> <startDate>;<endDate>
-        let startDate = date.split(';')[0]
-        if(startDate !== ''){
-            startDate = new Date(startDate)
-            data = data.filter(amount => {
-                var date = new Date(amount.created_at)
-                return (date >= startDate)
+const filterAmountsByCreationDate = (amounts,startAndOrEndCreationDatesString) => {
+    // return array with start and end day, if exists
+    if(!startAndOrEndCreationDatesString.includes(';')) throw new ServiceError(PROVIDE_CORRECT_DATA)
+    let amountsToFilter = amounts
+    startAndOrEndCreationDatesString.split(';').map((date,index) => {
+        if(isDate(date)) {
+            amountsToFilter = amountsToFilter.filter((amount) => {
+                const amountCreationDate = new Date(amount.created_at)
+                if(index === 0) return (amountCreationDate >= new Date(date))
+                else return (amountCreationDate <= new Date(date))
             })
         }
-        let endDate = date.split(';')[1]
-        if(endDate !== '') {
-            endDate = new Date(endDate)
-            data = data.filter(amount => {
-                var date = new Date(amount.created_at)
-                return (date <= endDate)
+    })
+    return amountsToFilter
+}
+
+const isNumeric = (num) => (typeof(num) === 'number' || typeof(num) === "string" && num.trim() !== '') && !isNaN(num)
+
+const filterAmountsByQuantity = (amounts,minAndOrMaxQuantityString) => {
+    if(!minAndOrMaxQuantityString.includes(';')) throw new ServiceError(PROVIDE_CORRECT_DATA)
+    let amountsToFilter = amounts
+    minAndOrMaxQuantityString.split(';').map((quantity,index) => {
+        if(isNumeric(quantity)) {
+            amountsToFilter = amountsToFilter.filter((amount) => {
+                const amountQuantity = Number(amount.quantity)
+                if(index === 0) return (amountQuantity >= Number(quantity))
+                else return (amountQuantity <= Number(quantity))
             })
         }
-    }
+    })
+    return amountsToFilter
+}
 
-    if(values.quantity) {
-        let quantity = values.quantity // format -> <minQuantity>;<maxQuantity>
-
-        let minQuantity = quantity.split(';')[0]
-        if(minQuantity !== ''){
-            console.log(minQuantity);
-            data = data.filter(amount => {
-                return (Number(amount.quantity) >= Number(minQuantity))
-            })
-        }
-        let maxQuantity = quantity.split(';')[1]
-        if(maxQuantity !== '') {
-            data = data.filter(amount => {
-                return (Number(amount.quantity) <= Number(maxQuantity))
-            })
-        }
-    }
-
-    if(values.movement) {
-        data = data.filter(amount => {
-            return (amount['type.movement'] === values.movement)
+const filterAmountsByMovement = (amounts,movementString) => {
+    let amountsToFilter = amounts
+    if(isMovement(movementString)) {
+        amountsToFilter = amountsToFilter.filter(amount => {
+            return (amount.movement === movementString)
         })
     }
+    return amountsToFilter
+}
 
-    if(values.amountType) {
-        const types = (values.amountType).split(',')
-        types.forEach((type)=>{
-            data = data.filter(amount => {
-                return (amount['type.name'] === type)
-            })
+const filterAmountsByTypes = (amounts,typesString) => {
+    let amountsToFilter = amounts
+    const types = typesString.split(',')
+    types.forEach((type)=>{
+        amountsToFilter = amountsToFilter.filter(amount => {
+            return (amount.type === type)
         })
+    })
+    return amountsToFilter
+}
+
+const getAmountsByCreatorIdWithFilteringOption = async ({creatorId,filteringOption}) => {
+    if(!creatorId) throw new ServiceError(PROVIDE_CORRECT_DATA_AMOUNT_SEARCHING_ERROR)
+
+    let amountsToProcess = await getAmountsByCreatorIdFromDB(creatorId)
+
+    if(filteringOption.created_at) { // check if there are creation dates to filter
+         // format -> <startDate>;<endDate>
+        amountsToProcess = filterAmountsByCreationDate(amountsToProcess,filteringOption.created_at)
     }
 
-    return data
+    if(filteringOption.quantity) { // checking if there are quantites to filter
+        // format -> <minQuantity>;<maxQuantity>
+        amountsToProcess = filterAmountsByQuantity(amountsToProcess,filteringOption.quantity)
+    }
+
+    if(filteringOption.movement) {
+        // format -> 'input' or 'output'
+        amountsToProcess = filterAmountsByMovement(amountsToProcess,filteringOption.movement)
+    }
+
+    if(filteringOption.type) {
+        // format -> <typeName1>,<typeName2>,...,<typeNameX>
+        amountsToProcess = filterAmountsByTypes(amountsToProcess,filteringOption.type)
+    }
+
+    return amountsToProcess
 }
 
 const getAmountById = async (amountId) => {
@@ -85,41 +106,49 @@ const getAmountById = async (amountId) => {
     return amount
 }
 
-const createNewAmount = async (values) => {
+const createAmountByQuantityMovementTypeAndCreatorId = async (values) => {
     if( !values.quantity || 
-        !values.amountType || 
-        !values.creator) throw new ServiceError(NOT_ENOUGH_DATA)
+        !values.movement || 
+        !values.type ||
+        !values.creatorId ) throw new ServiceError(NOT_ENOUGH_DATA)
 
+    // check if the type (movement and name) is a default one or its a custom one and belongs to the user
+    const typeMatched = await getTypesByMovementNameAndUserId({movement:values.movement,name:values.type,userId:values.creatorId})
+    if(!typeMatched) throw new NotFoundError(TYPE_NOT_FOUND+', '+AMOUNT_CREATION_ERROR)
+    
     const amountToCreate = {
-        quantity:Number(values.quantity),
-        amountType: Number(values.amountType),
+        quantity: Number(values.quantity),
+        amountType: Number(typeMatched.id),
+        creator: Number(values.creatorId),
         created_at: new Date(),
-        creator:Number(values.creator)
     }
+    
     const amountCreated = await createAmountInDB(amountToCreate)
     if(!amountCreated) throw new ServiceError(AMOUNT_CREATION_ERROR)
     else return amountCreated
 }
 
-const deleteAmountById = async (idOfAmountToDelete) => {
-    if(!idOfAmountToDelete) throw new ServiceError(NOT_ENOUGH_DATA)
-    const amountToDelete = await getAmountByIdFromDB(idOfAmountToDelete)
-    if(!amountToDelete) {}
-    else {
-        const amountDeleted = await deleteAmountByIdInDB(idOfAmountToDelete)
-        return amountDeleted
-    }
+const deleteAmountByIdAndCreatorId = async ({amountId,creatorId}) => {
+    if(!amountId || !creatorId) throw new ServiceError(NOT_ENOUGH_DATA)
+    const amountToDelete = await getAmountById(amountId)
+    if(!amountToDelete) throw new NotFoundError(AMOUNT_DELETING_ERROR)
+    if(amountToDelete.creator === creatorId) {
+        const amountDeleted = await deleteAmountByIdInDB(amountId)
+        return amountDeleted 
+    } else throw new ServiceError(AMOUNT_DELETING_ERROR)
 }
 
-const updateAmountById = async (values) => {
-    console.log(values);
-    return
+const updateAmountById = async ({amountId,newValues:{quantity,typeId}}) => {
+    /// ADD 
+}
+
+const updateAmountByIdCreatorIdAndNewValues = async ({amountId, creatorId, newValues: {quantity, movement, type}}) => {
+    /// ADD
 }
 
 module.exports = {
-    getAmountsByFilterWithCreatorId,
-    getAmountById,
-    createNewAmount,
-    deleteAmountById,
-    updateAmountById,
+    getAmountsByCreatorIdWithFilteringOption,
+    createAmountByQuantityMovementTypeAndCreatorId,
+    deleteAmountByIdAndCreatorId,
+    updateAmountByIdCreatorIdAndNewValues,
 }
