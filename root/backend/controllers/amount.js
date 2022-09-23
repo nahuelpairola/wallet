@@ -54,7 +54,9 @@ const getAmounts = async (req,res) => {
 
 const deleteAmount = async (req,res) => {
     const {id:amountId} = req.params
-    const amountDeleted = await deleteAmountByIdAndCreadorId(amountId)
+    if(!amountId) throw new BadRequestError(PROVIDE_ALL_DATA)
+    const creator = req.user
+    const amountDeleted = await deleteAmountByIdAndCreatorId({amountId, creatorId:creator.id})
 |   res.status(StatusCodes.OK).json({ User:req.user.email, AmountDeleted:amountDeleted })
 }
 
@@ -66,7 +68,7 @@ const updateAmount = async (req,res) => {
         type:type,
     } = req.body
 
-    if(!id || !quantity || !movement || !type) throw new BadRequestError(PROVIDE_ALL_DATA)
+    if(!amountId || !quantity || !movement || !type) throw new BadRequestError(PROVIDE_ALL_DATA)
     
     const creator = req.user
     const amountUpdated = await updateAmountByIdCreatorIdAndNewValues({

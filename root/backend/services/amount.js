@@ -1,6 +1,6 @@
 
-const { ServiceError, NotFoundError } = require('../errors')
-const { NOT_ENOUGH_DATA, AMOUNT_CREATION_ERROR, TYPE_NOT_FOUND, PROVIDE_CORRECT_DATA, PROVIDE_CORRECT_DATA_AMOUNT_SEARCHING_ERROR, AMOUNT_DELETING_ERROR } = require('../errors/error-msg-list')
+const { ServiceError, NotFoundError, UnauthenticatedError } = require('../errors')
+const { NOT_ENOUGH_DATA, AMOUNT_CREATION_ERROR, TYPE_NOT_FOUND, PROVIDE_CORRECT_DATA, PROVIDE_CORRECT_DATA_AMOUNT_SEARCHING_ERROR, AMOUNT_DELETING_ERROR, AMOUNT_NOT_FOUND, AMOUNT_UPDATING_ERROR } = require('../errors/error-msg-list')
 const {
     createAmountInDB,
     getAmountByIdFromDB,
@@ -8,7 +8,7 @@ const {
     getAmountsByTypeIdFromDB,
     getAmountsByCreatorIdFromDB,
     deleteAmountByIdInDB,
-    updateAmountValuesInDB,
+    updateAmountByIdQuantityAndAmountTypeInDB,
 } = require('../repository/amount')
 const { isMovement } = require('../repository/type')
 
@@ -131,19 +131,29 @@ const createAmountByQuantityMovementTypeAndCreatorId = async (values) => {
 const deleteAmountByIdAndCreatorId = async ({amountId,creatorId}) => {
     if(!amountId || !creatorId) throw new ServiceError(NOT_ENOUGH_DATA)
     const amountToDelete = await getAmountById(amountId)
-    if(!amountToDelete) throw new NotFoundError(AMOUNT_DELETING_ERROR)
-    if(amountToDelete.creator === creatorId) {
-        const amountDeleted = await deleteAmountByIdInDB(amountId)
-        return amountDeleted 
-    } else throw new ServiceError(AMOUNT_DELETING_ERROR)
+    if(!amountToDelete || amountToDelete.creator !== creatorId) throw new ServiceError(AMOUNT_DELETING_ERROR)   
+    const amountDeleted = await deleteAmountByIdInDB(amountId)
+    return amountDeleted 
 }
 
-const updateAmountById = async ({amountId,newValues:{quantity,typeId}}) => {
-    /// ADD 
+const updateAmountByIdAndNewValues = async ({amountId,newValues:{quantity,amountType}}) => {
+    if(!amountId || !quantity || !amountType) throw new ServiceError(NOT_ENOUGH_DATA)
+    const amountUpdated = await updateAmountByIdQuantityAndAmountTypeInDB({id:amountId,quantity,amountType})
+    if(!amountUpdated) return null
+    else return amountUpdated
 }
 
 const updateAmountByIdCreatorIdAndNewValues = async ({amountId, creatorId, newValues: {quantity, movement, type}}) => {
-    /// ADD
+    if( !amountId || !creatorId || !quantity || !movement || !type) throw new ServiceError(NOT_ENOUGH_DATA)
+    const amountMatched = await getAmountById(amountId)
+    if(!amountMatched) throw new NotFoundError(AMOUNT_NOT_FOUND+', '+AMOUNT_UPDATING_ERROR)
+    if(amountMatched.creator !== creatorId) throw new UnauthenticatedError(AMOUNT_UPDATING_ERROR)
+    // check if the type (movement and name) is a default one OR is a custom one
+    const newType = await getTypesByMovementNameAndUserId({movement, name: type, userId:creatorId})
+    if(!newType) throw new NotFoundError(TYPE_NOT_FOUND+', '+AMOUNT_UPDATING_ERROR)
+    const amountUpdated = await updateAmountByIdAndNewValues({amountId,newValues:{quantity,amountType:newType.id}})
+    if(!amountUpdated) throw new ServiceError(AMOUNT_UPDATING_ERROR)
+    else return amountUpdated
 }
 
 module.exports = {

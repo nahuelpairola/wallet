@@ -40,7 +40,8 @@ const createAmountInDB = async (amountToCreate) => {
         !amountToCreate.creator || 
         !amountToCreate.created_at) throw new RepositoryError(NOT_ENOUGH_DATA)
     const amountCreated = await Amount.create(amountToCreate)
-    return renameAmounts(amountCreated)
+    const renamedAmount = renameAmounts(amountCreated)
+    return renamedAmount
 }
 
 const getAmountByIdFromDB = async (amountId) => {
@@ -48,31 +49,37 @@ const getAmountByIdFromDB = async (amountId) => {
     const where = {id: amountId}
     const amount = await Amount.findAll({
         where, 
-        attributes: { exclude: ['amountType','creator'] },
-        raw:true,
-        include: { 
-            all: true,
-            attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
-        }
-    })
-    if(amount.length>0) return renameAmounts(amount[0])
-    else return null
-}
-
-const getAmountsByFilterFromDB = async (filter) => { // filter: creator id and type id
-    const where = {}
-    if(filter.creator) where.creator = filter.creator // creators id
-    if(filter.type) where.amountType = filter.type
-    const amounts = await Amount.findAll({  
-        where, 
-        attributes: { exclude: ['amountType','creator'] },
+        attributes: { exclude: ['amountType'] },
         raw:true,
         include: { 
             all: true,
             attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
         }
     })
-    if(amounts.length>0) return renameAmounts(amounts)
+    if(amount.length>0) {
+        const renamedAmount = renameAmounts(amount[0])
+        return renamedAmount
+    }
+    else return null
+}
+
+const getAmountsByFilterFromDB = async (filter) => { // filter: creator id and type id
+    const where = {}
+    if(filter.creator) where.creator = filter.creator // creator id
+    if(filter.type) where.amountType = filter.type
+    const amounts = await Amount.findAll({  
+        where, 
+        attributes: { exclude: ['amountType'] },
+        raw:true,
+        include: { 
+            all: true,
+            attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
+        }
+    })
+    if(amounts.length>0) {
+        const renamedAmounts = renameAmounts(amounts)
+        return renamedAmounts
+    }
     else return null
 }
 
@@ -88,7 +95,10 @@ const getAmountsByTypeIdFromDB = async (typeId) => { // filter: type id
             attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
         }
     })
-    if(amounts.length>0) return renameAmounts(amounts)
+    if(amounts.length>0) {
+        const renamedAmounts = renameAmounts(amounts)
+        return renamedAmounts
+    }
     else return null
 }
 
@@ -97,14 +107,17 @@ const getAmountsByCreatorIdFromDB = async (creatorId) => {
     const where = {creator: creatorId}
     const amounts = await Amount.findAll({
         where, 
-        attributes: { exclude: ['amountType','creator'] },
+        attributes: { exclude: ['amountType'] },
         raw:true,
         include: {
             all: true,
             attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
         }
     })
-    if(amounts.length>0) renameAmounts(amounts)
+    if(amounts.length>0) {
+        const renamedAmounts = renameAmounts(amounts)
+        return renamedAmounts
+    }
     else return null
 }
 
@@ -113,37 +126,42 @@ const deleteAmountByIdInDB = async (amountId) => {
     const where = {id:amountId}
     const amount = await Amount.findAll({ // get amount to return as amount deleted
         where, 
-        attributes: { exclude: ['amountType','creator'] },
+        attributes: { exclude: ['amountType'] },
         raw:true,
         include: { 
             all: true,
-            attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
+            attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
         }
     }) 
     await Amount.destroy({where}) // destroying amount in db
-    return renameAmounts(amount[0]) // returning amount deleted
+    const renamedAmount = renameAmounts(amount[0])
+    return renamedAmount
 }
 
-const updateAmountValuesInDB = async (values) => { // values contains: amount id, quantity and type id
+const updateAmountByIdQuantityAndAmountTypeInDB = async (values) => { // values contains: amount id, quantity and type id
     if( !values.id || 
         !values.quantity || 
-        !values.type) throw new RepositoryError(NOT_ENOUGH_DATA)
+        !values.amountType) throw new RepositoryError(NOT_ENOUGH_DATA)
     const where = {id: values.id}
     const newValues = {
         quantity:values.quantity,
-        type:values.type
+        amountType:values.amountType
     }
     await Amount.update(newValues,{where})
     const amount = await Amount.findAll({
         where, 
-        attributes: { exclude: ['amountType','creator'] },
+        attributes: { exclude: ['amountType'] },
         raw:true,
         include: { 
             all: true,
-            attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
+            attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
         }
     })
-    return renameAmounts(amount[0])
+    if(amount) {
+        const renamedAmount = renameAmounts(amount[0])
+        return renamedAmount
+    }
+    else return null
 }
 
 module.exports = {
@@ -153,5 +171,5 @@ module.exports = {
     getAmountsByTypeIdFromDB,
     getAmountsByCreatorIdFromDB,
     deleteAmountByIdInDB,
-    updateAmountValuesInDB,
+    updateAmountByIdQuantityAndAmountTypeInDB,
 }
