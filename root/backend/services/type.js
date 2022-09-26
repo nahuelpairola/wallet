@@ -17,13 +17,14 @@ const {
 
 const { ServiceError, BadRequestError } = require('../errors')
 const { isUserAnAdmin } = require('./user')
+const {TypeDeleteError, TypeCreateError, TypeSearchError, TypeUpdateError} = require('../errors/type-errors')
 
 const createNewType = async (newType) => {
     if (!newType.movement ||
         !newType.name ||
         !newType.creator ||
-        typeof newType.default === 'undefined') throw new ServiceError(NOT_ENOUGH_DATA)
-    if(!isMovement(newType.movement)) throw new BadRequestError(PROVIDE_CORRECT_DATA)
+        typeof newType.default === 'undefined') throw new TypeCreateError(NOT_ENOUGH_DATA)
+    if(!isMovement(newType.movement)) throw new TypeCreateError(PROVIDE_CORRECT_DATA)
         
     const typeToCreate = { // type to create
         movement: newType.movement,
@@ -74,15 +75,8 @@ const getDefaultTypes = async () => {
     else return defaultTypes
 }
 
-const getTypesByCreatorId = async (creatorId) => { // id: creator id
-    if (!creatorId) throw new ServiceError(NOT_ENOUGH_DATA)
-    const types = await getTypesByCreatorIdFromDB(creatorId)
-    if (types) return types
-    else return null
-}
-
 const getCustomTypesByCreatorId = async (creatorId) => {
-    if(!creatorId) throw new ServiceError(NOT_ENOUGH_DATA)
+    if(!creatorId) throw new TypeSearchError(NOT_ENOUGH_DATA)
     const customTypes = await getTypesByFilter({creator:creatorId,default:false})
     if(customTypes) return customTypes
     else return null
@@ -90,7 +84,7 @@ const getCustomTypesByCreatorId = async (creatorId) => {
 
 const getDefaultAndCustomTypesByUserId = async (userId) => {
     // return default and custom types by user id
-    if(!userId) throw new ServiceError(NOT_ENOUGH_DATA)
+    if(!userId) throw new TypeSearchError(NOT_ENOUGH_DATA)
     let userTypes = []
     const defaultTypes = await getDefaultTypes()
     if(defaultTypes) userTypes = [...defaultTypes]
@@ -100,8 +94,8 @@ const getDefaultAndCustomTypesByUserId = async (userId) => {
     return userTypes
 }
 
-const getTypesByUser = async (user) => {
-    if(!user.id || !user.role) throw new ServiceError(NOT_ENOUGH_DATA)
+const getTypesByUserIdAndRole = async (user) => {
+    if(!user.id || !user.role) throw new TypeSearchError(NOT_ENOUGH_DATA)
     if(isUserAnAdmin(user)) { 
         // return only default types, no matter creator
         const defaultTypes = await getDefaultTypes()
@@ -123,36 +117,31 @@ const getTypesByUser = async (user) => {
 
 const getTypeById = async (id) => {
     // the type can be a default or a custom one
-    if (!id) throw new ServiceError(NOT_ENOUGH_DATA)
+    if (!id) throw new TypeSearchError(NOT_ENOUGH_DATA)
     const type = await getTypeByIdFromDB(id)
     if (type) return type
     else return null
 }
 
 const getTypesByMovementNameAndUserId = async ({movement, name, userId}) => {
-    if(!movement || !name || !userId) throw new ServiceError(NOT_ENOUGH_DATA)
+    if(!movement || !name || !userId) throw new TypeSearchError(NOT_ENOUGH_DATA)
     const typesMatched = await getDefaultAndCustomTypesByUserId(userId)
-    const typesMatchedFiltered = typesMatched.filter((type)=>{
-        return (
-            (type.movement === movement) && 
-            (type.name === name)
-        ) 
-    })
+    const typesMatchedFiltered = typesMatched.filter((type) => ((type.movement === movement) && (type.name === name)))
     if(typesMatchedFiltered.length === 0) return null
     else return typesMatchedFiltered[0]
 }
 
 const deleteTypeById = async (id) => {
-    if (!id) throw new ServiceError(NOT_ENOUGH_DATA)
+    if (!id) throw new TypeDeleteError(NOT_ENOUGH_DATA)
     const typeToDelete = await getTypeById(id)
     if (typeToDelete) {
         const deletedType = await deleteTypeByIdInDB(id)
         return deletedType
-    } else throw new ServiceError(TYPE_DELETING_ERROR)
+    } else throw new TypeDeleteError(TYPE_DELETING_ERROR)
 }
 
 const deleteTypeByIdAndCreator = async ({typeId:typeIdToDelete,creator:creator}) => {
-    if(!typeIdToDelete || !creator.id || !creator.role) throw new ServiceError(NOT_ENOUGH_DATA)
+    if(!typeIdToDelete || !creator.id || !creator.role) throw new TypeDeleteError(NOT_ENOUGH_DATA)
     const typeMatched = await getTypeById(typeIdToDelete)
     if(!typeMatched) return null // type not founded
     if(isUserAnAdmin(creator) && typeMatched.default) { // if the type is default and the user is admin, delete type
@@ -162,29 +151,29 @@ const deleteTypeByIdAndCreator = async ({typeId:typeIdToDelete,creator:creator})
         const deletedCustomType = await deleteTypeById(typeIdToDelete)
         return deleteCreatorOfEachType(deletedCustomType)
     } else {
-        throw new ServiceError(TYPE_DELETING_ERROR)
+        throw new TypeDeleteError(TYPE_DELETING_ERROR)
     }
 }
 
 const updateMovementAndNameInTypeById = async ({id:typeId,name:newName,movement:newMovement}) => {
-    if (!typeId || !newMovement || !newName) throw new ServiceError(NOT_ENOUGH_DATA)
+    if (!typeId || !newMovement || !newName) throw new TypeUpdateError(NOT_ENOUGH_DATA)
     const typeMatched = await getTypeById(typeId)
     if (typeMatched) {
         const typeUpdated = await updateNameAndMovementInTypeByIdInDB({id:typeId,movement:newMovement,name:newName})
         return typeUpdated
     } else {
-        throw new ServiceError(TYPE_NOT_FOUND)
+        throw new TypeUpdateError(TYPE_NOT_FOUND)
     }
 }
 
 const updateTypeByIdAndUser = async ({id:typeIdToUpdate,name:newName,movement:newMovement,user}) => {
-    if( !typeIdToUpdate || !newName || !newMovement || !user.id || !user.role) throw new ServiceError(NOT_ENOUGH_DATA)
+    if( !typeIdToUpdate || !newName || !newMovement || !user.id || !user.role) throw new TypeUpdateError(NOT_ENOUGH_DATA)
     // check if there is a default type with those new values
     const matchedDefaultType = await getTypesByFilter({default:true, name: newName, movement: newMovement})
     if(matchedDefaultType) return deleteCreatorOfEachType(matchedDefaultType)
     // get the type to update from id
     const matchedType = await getTypeById(typeIdToUpdate)
-    if(!matchedType) throw new ServiceError(TYPE_NOT_FOUND)
+    if(!matchedType) throw new TypeUpdateError(TYPE_NOT_FOUND)
     if(matchedType.default && isUserAnAdmin(user)) { // check if type creator is admin and the type is a default one
         const updatedDefaultType = await updateMovementAndNameInTypeById({id:typeIdToUpdate,name:newName,movement:newMovement})
         return deleteCreatorOfEachType(updatedDefaultType)
@@ -215,7 +204,7 @@ const deleteCreatorOfEachType = (types) => {
 
 module.exports = {
     createNewType, // create new type 
-    getTypesByUser, // get types by user
+    getTypesByUserIdAndRole, // get types by user id and role
     getTypesByMovementNameAndUserId,
     deleteTypeByIdAndCreator, // delete a type
     updateTypeByIdAndUser, // update a type

@@ -1,12 +1,12 @@
 
-const { RepositoryError } = require('../errors')
+const {AmountCreateError, AmountSearchError, AmountUpdateError, AmountDeleteError} = require('../errors/amount-errors')
 const { NOT_ENOUGH_DATA } = require('../errors/error-msg-list')
 const { Amount} = require('../models')
 
-const renameAmounts = (amounts) => {
+const renameAmounts = (amounts) => { // rename elements in amounts, a single one or an array
     if(amounts.length>1) { // for amount array
         const amountsToProcess = amounts.map(amount=>{
-            return renameSingleAmount(amount)  
+            return renameSingleAmount(amount) // rename single amount
         })
         return amountsToProcess
     } else { // for single amount
@@ -38,14 +38,14 @@ const createAmountInDB = async (amountToCreate) => {
     if( !amountToCreate.quantity || 
         !amountToCreate.amountType || 
         !amountToCreate.creator || 
-        !amountToCreate.created_at) throw new RepositoryError(NOT_ENOUGH_DATA)
+        !amountToCreate.created_at) throw new AmountCreateError(NOT_ENOUGH_DATA)
     const amountCreated = await Amount.create(amountToCreate)
     const renamedAmount = renameAmounts(amountCreated)
     return renamedAmount
 }
 
 const getAmountByIdFromDB = async (amountId) => {
-    if(!amountId) throw new RepositoryError(NOT_ENOUGH_DATA)
+    if(!amountId) throw new AmountSearchError(NOT_ENOUGH_DATA)
     const where = {id: amountId}
     const amount = await Amount.findAll({
         where, 
@@ -84,7 +84,7 @@ const getAmountsByFilterFromDB = async (filter) => { // filter: creator id and t
 }
 
 const getAmountsByTypeIdFromDB = async (typeId) => { // filter: type id
-    if(!typeId) throw new RepositoryError(NOT_ENOUGH_DATA)
+    if(!typeId) throw new AmountSearchError(NOT_ENOUGH_DATA)
     const where = {type:typeId}
     const amounts = await Amount.findAll({
         where, 
@@ -103,7 +103,7 @@ const getAmountsByTypeIdFromDB = async (typeId) => { // filter: type id
 }
 
 const getAmountsByCreatorIdFromDB = async (creatorId) => {
-    if(!creatorId) throw new RepositoryError(NOT_ENOUGH_DATA)
+    if(!creatorId) throw new AmountSearchError(NOT_ENOUGH_DATA)
     const where = {creator: creatorId}
     const amounts = await Amount.findAll({
         where, 
@@ -122,7 +122,7 @@ const getAmountsByCreatorIdFromDB = async (creatorId) => {
 }
 
 const deleteAmountByIdInDB = async (amountId) => {
-    if(!amountId) throw new RepositoryError(NOT_ENOUGH_DATA)
+    if(!amountId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
     const where = {id:amountId}
     const amount = await Amount.findAll({ // get amount to return as amount deleted
         where, 
@@ -141,7 +141,7 @@ const deleteAmountByIdInDB = async (amountId) => {
 const updateAmountByIdQuantityAndAmountTypeInDB = async (values) => { // values contains: amount id, quantity and type id
     if( !values.id || 
         !values.quantity || 
-        !values.amountType) throw new RepositoryError(NOT_ENOUGH_DATA)
+        !values.amountType) throw new AmountUpdateError(NOT_ENOUGH_DATA)
     const where = {id: values.id}
     const newValues = {
         quantity:values.quantity,

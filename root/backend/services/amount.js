@@ -1,6 +1,7 @@
 
 const { ServiceError, NotFoundError, UnauthenticatedError } = require('../errors')
-const { NOT_ENOUGH_DATA, AMOUNT_CREATION_ERROR, TYPE_NOT_FOUND, PROVIDE_CORRECT_DATA, PROVIDE_CORRECT_DATA_AMOUNT_SEARCHING_ERROR, AMOUNT_DELETING_ERROR, AMOUNT_NOT_FOUND, AMOUNT_UPDATING_ERROR } = require('../errors/error-msg-list')
+const { AmountSearchError, AmountCreateError, AmountDeleteError, AmountUpdateError } = require('../errors/amount-errors')
+const { NOT_ENOUGH_DATA, AMOUNT_CREATION_ERROR, TYPE_NOT_FOUND, PROVIDE_CORRECT_DATA, AMOUNT_DELETING_ERROR, AMOUNT_NOT_FOUND, AMOUNT_UPDATING_ERROR, ACCESS_UNAUTHORIZED } = require('../errors/error-msg-list')
 const {
     createAmountInDB,
     getAmountByIdFromDB,
@@ -52,6 +53,7 @@ const filterAmountsByQuantity = (amounts,minAndOrMaxQuantityString) => {
 }
 
 const filterAmountsByMovement = (amounts,movementString) => {
+    if(!amounts || !movementString) throw new ServiceError(PROVIDE_CORRECT_DATA)
     let amountsToFilter = amounts
     if(isMovement(movementString)) {
         amountsToFilter = amountsToFilter.filter(amount => {
@@ -62,6 +64,7 @@ const filterAmountsByMovement = (amounts,movementString) => {
 }
 
 const filterAmountsByTypes = (amounts,typesString) => {
+    if(!amounts || !typesString) throw new ServiceError(PROVIDE_CORRECT_DATA)
     let amountsToFilter = amounts
     const types = typesString.split(',')
     types.forEach((type)=>{
@@ -73,7 +76,7 @@ const filterAmountsByTypes = (amounts,typesString) => {
 }
 
 const getAmountsByCreatorIdWithFilteringOption = async ({creatorId,filteringOption}) => {
-    if(!creatorId) throw new ServiceError(PROVIDE_CORRECT_DATA_AMOUNT_SEARCHING_ERROR)
+    if(!creatorId) throw new AmountSearchError(NOT_ENOUGH_DATA)
 
     let amountsToProcess = await getAmountsByCreatorIdFromDB(creatorId)
 
@@ -96,12 +99,11 @@ const getAmountsByCreatorIdWithFilteringOption = async ({creatorId,filteringOpti
         // format -> <typeName1>,<typeName2>,...,<typeNameX>
         amountsToProcess = filterAmountsByTypes(amountsToProcess,filteringOption.type)
     }
-
-    return amountsToProcess
+    return amountsToProcess // returning amounts already processed
 }
 
 const getAmountById = async (amountId) => {
-    if(!amountId) throw new ServiceError(NOT_ENOUGH_DATA)
+    if(!amountId) throw new AmountSearchError(NOT_ENOUGH_DATA)
     const amount = await getAmountByIdFromDB(amountId)
     return amount
 }
@@ -110,11 +112,11 @@ const createAmountByQuantityMovementTypeAndCreatorId = async (values) => {
     if( !values.quantity || 
         !values.movement || 
         !values.type ||
-        !values.creatorId ) throw new ServiceError(NOT_ENOUGH_DATA)
+        !values.creatorId ) throw new AmountCreateError(NOT_ENOUGH_DATA)
 
     // check if the type (movement and name) is a default one or its a custom one and belongs to the user
     const typeMatched = await getTypesByMovementNameAndUserId({movement:values.movement,name:values.type,userId:values.creatorId})
-    if(!typeMatched) throw new NotFoundError(TYPE_NOT_FOUND+', '+AMOUNT_CREATION_ERROR)
+    if(!typeMatched) throw new AmountCreateError(TYPE_NOT_FOUND)
     
     const amountToCreate = {
         quantity: Number(values.quantity),
@@ -124,20 +126,20 @@ const createAmountByQuantityMovementTypeAndCreatorId = async (values) => {
     }
     
     const amountCreated = await createAmountInDB(amountToCreate)
-    if(!amountCreated) throw new ServiceError(AMOUNT_CREATION_ERROR)
+    if(!amountCreated) throw new AmountCreateError(AMOUNT_CREATION_ERROR)
     else return amountCreated
 }
 
 const deleteAmountByIdAndCreatorId = async ({amountId,creatorId}) => {
-    if(!amountId || !creatorId) throw new ServiceError(NOT_ENOUGH_DATA)
+    if(!amountId || !creatorId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
     const amountToDelete = await getAmountById(amountId)
-    if(!amountToDelete || amountToDelete.creator !== creatorId) throw new ServiceError(AMOUNT_DELETING_ERROR)   
+    if(!amountToDelete || amountToDelete.creator !== creatorId) throw new AmountDeleteError(AMOUNT_DELETING_ERROR)   
     const amountDeleted = await deleteAmountByIdInDB(amountId)
     return amountDeleted 
 }
 
 const updateAmountByIdAndNewValues = async ({amountId,newValues:{quantity,amountType}}) => {
-    if(!amountId || !quantity || !amountType) throw new ServiceError(NOT_ENOUGH_DATA)
+    if(!amountId || !quantity || !amountType) throw new AmountUpdateError(NOT_ENOUGH_DATA)
     const amountUpdated = await updateAmountByIdQuantityAndAmountTypeInDB({id:amountId,quantity,amountType})
     if(!amountUpdated) return null
     else return amountUpdated
@@ -146,13 +148,13 @@ const updateAmountByIdAndNewValues = async ({amountId,newValues:{quantity,amount
 const updateAmountByIdCreatorIdAndNewValues = async ({amountId, creatorId, newValues: {quantity, movement, type}}) => {
     if( !amountId || !creatorId || !quantity || !movement || !type) throw new ServiceError(NOT_ENOUGH_DATA)
     const amountMatched = await getAmountById(amountId)
-    if(!amountMatched) throw new NotFoundError(AMOUNT_NOT_FOUND+', '+AMOUNT_UPDATING_ERROR)
-    if(amountMatched.creator !== creatorId) throw new UnauthenticatedError(AMOUNT_UPDATING_ERROR)
+    if(!amountMatched) throw new AmountUpdateError(AMOUNT_NOT_FOUND)
+    if(amountMatched.creator !== creatorId) throw new AmountUpdateError(ACCESS_UNAUTHORIZED)
     // check if the type (movement and name) is a default one OR is a custom one
     const newType = await getTypesByMovementNameAndUserId({movement, name: type, userId:creatorId})
-    if(!newType) throw new NotFoundError(TYPE_NOT_FOUND+', '+AMOUNT_UPDATING_ERROR)
+    if(!newType) throw new AmountUpdateError(TYPE_NOT_FOUND)
     const amountUpdated = await updateAmountByIdAndNewValues({amountId,newValues:{quantity,amountType:newType.id}})
-    if(!amountUpdated) throw new ServiceError(AMOUNT_UPDATING_ERROR)
+    if(!amountUpdated) throw new AmountUpdateError(AMOUNT_UPDATING_ERROR)
     else return amountUpdated
 }
 
