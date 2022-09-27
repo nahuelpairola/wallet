@@ -5,7 +5,7 @@ const { PROVIDE_ALL_DATA, TYPE_NOT_FOUND } = require('../errors/error-msg-list')
 
 const {
     createNewType,
-    getTypesByUser,
+    getTypesByUserIdAndRole,
     deleteTypeByIdAndCreator,
     updateTypeByIdAndUser,
     assignDefaultTypeByCreatorRole,
@@ -27,7 +27,7 @@ const createType = async (req, res) => {
 
 const getTypes = async (req,res) => {
     const user = req.user
-    const types = await getTypesByUser(user)
+    const types = await getTypesByUserIdAndRole({id:user.id, role:user.role})
     if(!types) throw new NotFoundError(TYPE_NOT_FOUND)
     else res.status(StatusCodes.OK).json({ nHits: types.length, User: user.email, Types: types })
 }

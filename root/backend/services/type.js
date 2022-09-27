@@ -13,6 +13,7 @@ const {
     TYPE_DELETING_ERROR,
     TYPE_NOT_FOUND,
     PROVIDE_CORRECT_DATA,
+    ACCESS_UNAUTHORIZED,
 } = require('../errors/error-msg-list')
 
 const { ServiceError, BadRequestError } = require('../errors')
@@ -150,6 +151,8 @@ const deleteTypeByIdAndCreator = async ({typeId:typeIdToDelete,creator:creator})
     } else if(!isUserAnAdmin(creator) && typeMatched.creator === creator.id) { // if user is a normal user and is the creator of the type, delete it
         const deletedCustomType = await deleteTypeById(typeIdToDelete)
         return deleteCreatorOfEachType(deletedCustomType)
+    } else if (!isUserAnAdmin(creator) && typeMatched.creator !== creator.id) { // if user is a normal user and the type is not from that creator
+        throw new TypeDeleteError(ACCESS_UNAUTHORIZED)
     } else {
         throw new TypeDeleteError(TYPE_DELETING_ERROR)
     }
