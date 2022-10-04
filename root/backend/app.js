@@ -17,12 +17,15 @@ const errorHandlerMiddleware = require('./middleware/error-handler')
 
 // routes
 const amountRoutes = require('./routes/amount')
-const userRoutes = require('./routes/user')
+const authRoutes = require('./routes/auth')
 const typeRoutes = require('./routes/type')
+const userRoutes = require('./routes/user')
 
+app.use('/api/v1/auth', authRoutes)
 app.use('/api/v1/amount', authenticationMiddleware, amountRoutes)
 app.use('/api/v1/type', authenticationMiddleware, typeRoutes)
-app.use('/api/v1/user', userRoutes)
+app.use('/api/v1/user', authenticationMiddleware, userRoutes)
+
 app.use(notFoundMiddleware)
 app.use(errorHandlerMiddleware)
 

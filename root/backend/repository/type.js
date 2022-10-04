@@ -1,7 +1,6 @@
 
-const { NOT_ENOUGH_DATA, PROVIDE_CORRECT_DATA, } = require('../errors/error-msg-list')
-const { RepositoryError, BadRequestError } = require('../errors')
-const {TypeCreateError, TypeSearchError, TypeDeleteError, TypeUpdateError} = require('../errors/type-errors')
+const { NOT_ENOUGH_DATA, } = require('../errors/error-msg-list')
+const { TypeCreateError, TypeSearchError, TypeDeleteError, TypeUpdateError } = require('../errors/type-errors')
 const { Type } = require('../models')
 
 const createTypeInDB = async (newType) => { // create type
@@ -18,8 +17,8 @@ const createTypeInDB = async (newType) => { // create type
 const getTypeByIdFromDB = async (typeId) => {
     if(!typeId) throw new TypeSearchError(NOT_ENOUGH_DATA)
     where = {id: typeId}
-    const type = await Type.findAll({where,raw:true})
-    if(type.length>0) return type[0]
+    const type = await Type.findByPk(typeId,{raw: true})
+    if(type) return type
     else return null // type not founded
 }
 
@@ -28,7 +27,6 @@ const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement,
         !filter.movement &&
         !filter.name &&
         typeof filter.default === 'undefined') throw new TypeSearchError(NOT_ENOUGH_DATA)
-
     const where = {}
     if(filter.creator) where.creator = filter.creator // add creators id
     if(filter.movement) where.movement = filter.movement // add movement if filter requires

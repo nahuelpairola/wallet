@@ -1,5 +1,5 @@
 const {StatusCodes} = require('http-status-codes')
-const {BadRequestError, NotFoundError, UnauthenticatedError} = require('../errors')
+const {BadRequestError, NotFoundError} = require('../errors')
 
 const { PROVIDE_ALL_DATA, TYPE_NOT_FOUND } = require('../errors/error-msg-list')
 

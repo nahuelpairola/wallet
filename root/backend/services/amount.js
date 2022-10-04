@@ -1,19 +1,27 @@
 
-const { ServiceError, NotFoundError, UnauthenticatedError } = require('../errors')
+const { ServiceError} = require('../errors')
 const { AmountSearchError, AmountCreateError, AmountDeleteError, AmountUpdateError } = require('../errors/amount-errors')
-const { NOT_ENOUGH_DATA, AMOUNT_CREATION_ERROR, TYPE_NOT_FOUND, PROVIDE_CORRECT_DATA, AMOUNT_DELETING_ERROR, AMOUNT_NOT_FOUND, AMOUNT_UPDATING_ERROR, ACCESS_UNAUTHORIZED } = require('../errors/error-msg-list')
+const {
+    NOT_ENOUGH_DATA,
+    AMOUNT_CREATION_ERROR, 
+    TYPE_NOT_FOUND, 
+    PROVIDE_CORRECT_DATA, 
+    AMOUNT_DELETING_ERROR, 
+    AMOUNT_NOT_FOUND, 
+    AMOUNT_UPDATING_ERROR, 
+    ACCESS_UNAUTHORIZED 
+} = require('../errors/error-msg-list')
+
 const {
     createAmountInDB,
     getAmountByIdFromDB,
-    getAmountsByFilterFromDB,
-    getAmountsByTypeIdFromDB,
     getAmountsByCreatorIdFromDB,
     deleteAmountByIdInDB,
     updateAmountByIdQuantityAndAmountTypeInDB,
+    getAtLeastOneAmountUsingThisTypeIdInDB,
 } = require('../repository/amount')
-const { isMovement } = require('../repository/type')
 
-const { getTypesByMovementNameAndUserId } = require('../services/type')
+const { getTypesByMovementNameAndUserId , isMovement } = require('./type')
 
 const isDate = (date) => {
     return (new Date(date) !== "Invalid Date") && !isNaN(new Date(date));
@@ -73,6 +81,13 @@ const filterAmountsByTypes = (amounts,typesString) => {
         })
     })
     return amountsToFilter
+}
+
+const isAnAmountUsingThisTypeId = async (typeId) => {
+    if(!typeId) throw new ServiceError(NOT_ENOUGH_DATA)
+    const amount = await getAtLeastOneAmountUsingThisTypeIdInDB(typeId)
+    if(amount) return Promise.resolve(true)
+    else return Promise.resolve(false)
 }
 
 const getAmountsByCreatorIdWithFilteringOption = async ({creatorId,filteringOption}) => {
@@ -163,4 +178,7 @@ module.exports = {
     createAmountByQuantityMovementTypeAndCreatorId,
     deleteAmountByIdAndCreatorId,
     updateAmountByIdCreatorIdAndNewValues,
+    isAnAmountUsingThisTypeId
 }
+
+// exports.isAnAmountUsingThisTypeId = isAnAmountUsingThisTypeId

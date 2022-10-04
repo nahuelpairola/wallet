@@ -1,12 +1,3 @@
-const {
-    createTypeInDB,
-    getTypeByIdFromDB,
-    getTypesByFilterFromDB,
-    getTypesByCreatorIdFromDB,
-    deleteTypeByIdInDB,
-    updateNameAndMovementInTypeByIdInDB,
-    isMovement
-} = require('../repository/type')
 
 const {
     NOT_ENOUGH_DATA,
@@ -14,11 +5,47 @@ const {
     TYPE_NOT_FOUND,
     PROVIDE_CORRECT_DATA,
     ACCESS_UNAUTHORIZED,
+    TYPE_USED_IN_AMOUNT,
 } = require('../errors/error-msg-list')
+const { ServiceError } = require('../errors')
+const {
+    TypeDeleteError,
+    TypeCreateError, 
+    TypeSearchError, 
+    TypeUpdateError
+} = require('../errors/type-errors')
 
-const { ServiceError, BadRequestError } = require('../errors')
+const {
+    createTypeInDB,
+    getTypeByIdFromDB,
+    getTypesByFilterFromDB,
+    deleteTypeByIdInDB,
+    updateNameAndMovementInTypeByIdInDB,
+    isMovement
+} = require('../repository/type')
+
+const { isAnAmountUsingThisTypeId } = require('./amount')
+
 const { isUserAnAdmin } = require('./user')
-const {TypeDeleteError, TypeCreateError, TypeSearchError, TypeUpdateError} = require('../errors/type-errors')
+
+const deleteCreatorOfEachType = (types) => {
+    if(types.length>1) {
+        const typesWithoutCreator = types.map((type)=>{
+            delete type.creator
+            return type
+        })
+        return typesWithoutCreator
+    } else {
+        delete types.creator
+        return types
+    }
+}
+
+const isTypeIdUsedInAmounts = async (typeId) => {
+    const isTheTypeUsed = await isAnAmountUsingThisTypeId(typeId)
+    if(isTheTypeUsed) return Promise.resolve(true)
+    else return Promise.resolve(false)
+}
 
 const createNewType = async (newType) => {
     if (!newType.movement ||
@@ -143,9 +170,13 @@ const deleteTypeById = async (id) => {
 
 const deleteTypeByIdAndCreator = async ({typeId:typeIdToDelete,creator:creator}) => {
     if(!typeIdToDelete || !creator.id || !creator.role) throw new TypeDeleteError(NOT_ENOUGH_DATA)
+
     const typeMatched = await getTypeById(typeIdToDelete)
     if(!typeMatched) return null // type not founded
+    if(isTypeIdUsedInAmounts(typeIdToDelete)) throw new TypeDeleteError(TYPE_USED_IN_AMOUNT)
+    
     if(isUserAnAdmin(creator) && typeMatched.default) { // if the type is default and the user is admin, delete type
+        // check if the type is used in amounts
         const deletedDefaultType = await deleteTypeById(typeIdToDelete)
         return deleteCreatorOfEachType(deletedDefaultType)
     } else if(!isUserAnAdmin(creator) && typeMatched.creator === creator.id) { // if user is a normal user and is the creator of the type, delete it
@@ -190,19 +221,6 @@ const assignDefaultTypeByCreatorRole = (creatorRole) => {
     if(!creatorRole) throw new ServiceError(NOT_ENOUGH_DATA)
     if(creatorRole === 'admin') return true // the default field of the type will be true
     else return false // the type will be custom
-}
-
-const deleteCreatorOfEachType = (types) => {
-    if(types.length>1) {
-        const typesWithoutCreator = types.map((type)=>{
-            delete type.creator
-            return type
-        })
-        return typesWithoutCreator
-    } else {
-        delete types.creator
-        return types
-    }
 }
 
 module.exports = {

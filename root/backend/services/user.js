@@ -6,7 +6,7 @@ const {
     createUserInDB, 
     getUserByEmailFromDB,
     deleteUserByIdInDB,
-    updateUserByIdInDB
+    updateUserByIdFirstNameLastNameEmailAndPasswordInDB
 } = require('../repository/user')
 
 const { PASSWORD_INCORRECT,
@@ -14,9 +14,25 @@ const { PASSWORD_INCORRECT,
         NOT_ENOUGH_DATA,
         PROVIDE_ALL_DATA,
         USER_ALREADY_CREATED,
+        USER_UPDATING_ERROR,
+        ACCESS_UNAUTHORIZED,
+        USER_UPDATING_UNAUTHORIZED,
         } = require('../errors/error-msg-list')
 
 const { UserSearchError, UserNotFoundError, UserCreateError, UserUpdateError } = require('../errors/user-errors')
+
+const generatePassword = async (password) => {
+    const salt = await bcrypt.genSalt(10) // generate crypted password
+    passwordSaltedAndHashed = await bcrypt.hash(password, salt)
+    return passwordSaltedAndHashed
+}
+
+const generateTokenByEmail = (userEmail) => {
+    const token = jwt.sign({email: userEmail},
+                                process.env.JWT_SECRET,
+                                {expiresIn:process.env.JWT_LIFETIME})
+    return token
+}
 
 // check password, return token
 const getTokenByEmailAndPassword = async (emailAndPassword) => {
@@ -56,8 +72,7 @@ const createUser = async (user) => {
 
     if(!userMatched) {
         user.created_at = new Date() // add time when it was created
-        const salt = await bcrypt.genSalt(10) // generate crypted password
-        user.password = await bcrypt.hash(user.password, salt)
+        user.password = await generatePassword(user.password)
         const userCreated = await createUserInDB({ // store in db
             first_name: user.first_name,
             last_name: user.last_name,
@@ -67,9 +82,7 @@ const createUser = async (user) => {
             role: user.role
         })
         // create token, payload = email
-        const token = jwt.sign({email: userCreated.email},
-                                process.env.JWT_SECRET,
-                                {expiresIn:process.env.JWT_LIFETIME})
+        const token = generateTokenByEmail(userCreated.email)
 
         return ( { email: user.email, token: token } )
     } else throw new UserCreateError(USER_ALREADY_CREATED)
@@ -81,13 +94,35 @@ const isUserAnAdmin = (user) => {
     else return false
 }
 
-const updateUserByIdAndNewValues = ({id:userId, newValues:{first_name, last_name, email, password}}) => {
-    if( !userId || 
+const updateUserByIdUserAndNewValuesAndGetUpdatedUserNewToken = async ({id: userId, user , newValues}) => {
+    if( !userId ||
+        !user.id ||
+        !user.email ||
         !newValues.first_name || 
         !newValues.last_name || 
         !newValues.email || 
         !newValues.password ) throw new UserUpdateError(NOT_ENOUGH_DATA)
-    return 'updatedUser'
+
+    if(userId !== user.id) throw new UserUpdateError(USER_UPDATING_UNAUTHORIZED)
+    
+    const isAnyUserWithNewEmail = await getUserByEmailFromDB(newValues.email) //check if the email is available
+    if(isAnyUserWithNewEmail) throw new UserUpdateError(USER_EMAIL_NOT_AVAILABLE)
+
+    newValues.password = await generatePassword(newValues.password) // cript new passwrod
+
+    const updatedUser = await updateUserByIdFirstNameLastNameEmailAndPasswordInDB({
+        id: userId,
+        first_name: newValues.first_name,
+        last_name: newValues.last_name,
+        email: newValues.email,
+        password: newValues.password
+    })
+    
+    if(!updatedUser) throw new UserUpdateError(USER_UPDATING_ERROR)
+    else {
+        const token = generateTokenByEmail(updatedUser.email)
+        return {updatedUser,token}
+    }
 }
 
 module.exports = {
@@ -95,4 +130,5 @@ module.exports = {
     getTokenByEmailAndPassword,
     getUserByToken,
     isUserAnAdmin,
+    updateUserByIdUserAndNewValuesAndGetUpdatedUserNewToken,
 }

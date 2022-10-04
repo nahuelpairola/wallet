@@ -1,8 +1,8 @@
 const { StatusCodes } = require('http-status-codes')
-const { JsonWebTokenError } = require('jsonwebtoken')
+const { JsonWebTokenError , TokenExpiredError } = require('jsonwebtoken')
 const {BaseError} = require('sequelize')
-const {UserCreateError, UserSearchError} = require('../errors/user-errors')
-const {USER_ALREADY_CREATED, PASSWORD_INCORRECT, ACCESS_UNAUTHORIZED} = require('../errors/error-msg-list')
+const {UserCreateError, UserSearchError, UserUpdateError} = require('../errors/user-errors')
+const {USER_ALREADY_CREATED, PASSWORD_INCORRECT, ACCESS_UNAUTHORIZED, TOKEN_EXPIRED, TYPE_USED_IN_AMOUNT, USER_EMAIL_NOT_AVAILABLE, USER_UPDATING_UNAUTHORIZED} = require('../errors/error-msg-list')
 const { TypeDeleteError } = require('../errors/type-errors')
  
 const errorHandlerMiddleware = async (error, req, res, next) => {
@@ -20,6 +20,10 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
     customError.statusCode = StatusCodes.UNAUTHORIZED
     customError.msg = error.message.toUpperCase()
   }
+  if(error instanceof TokenExpiredError) {
+    customError.statusCode = StatusCodes.UNAUTHORIZED
+    customError.msg = error.message.toUpperCase()+TOKEN_EXPIRED
+  }
   if(error instanceof BaseError) {
     customError.message = 'INTERNAL SERVER ERROR'
   }
@@ -33,6 +37,18 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
   }
   if(error instanceof TypeDeleteError && error.message === ACCESS_UNAUTHORIZED) {
     error.statusCode = StatusCodes.UNAUTHORIZED
+    customError.statusCode = error.statusCode
+  }
+  if(error instanceof TypeDeleteError && error.message === TYPE_USED_IN_AMOUNT) {
+    error.statusCode= StatusCodes.CONFLICT
+    customError.statusCode = error.statusCode
+  }
+  if(error instanceof UserUpdateError && error.message === USER_EMAIL_NOT_AVAILABLE) {
+    error.statusCode= StatusCodes.CONFLICT
+    customError.statusCode = error.statusCode
+  }
+  if(error instanceof UserUpdateError && error.message === USER_UPDATING_UNAUTHORIZED) {
+    error.statusCode= StatusCodes.UNAUTHORIZED
     customError.statusCode = error.statusCode
   }
 

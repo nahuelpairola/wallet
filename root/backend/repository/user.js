@@ -1,6 +1,6 @@
 const { User } = require('../models')
 const { NOT_ENOUGH_DATA } = require('../errors/error-msg-list')
-const { UserSearchError, UserDeleteError, UserCreateError } = require('../errors/user-errors')
+const { UserSearchError, UserDeleteError, UserCreateError, UserUpdateError } = require('../errors/user-errors')
 
 const getUserByEmailFromDB = async (userEmail) => {
     if(!userEmail) throw new UserSearchError(NOT_ENOUGH_DATA)
@@ -33,25 +33,26 @@ const createUserInDB = async (user) => {
 
 const deleteUserByIdInDB = async (userId) => {
     if(!userId) throw new UserDeleteError(NOT_ENOUGH_DATA)
-    const where = {id:userId}
-    const userDeleted = await User.findAll({where,raw:true})
+    const userDeleted = await User.findByPk(userId,{raw:true})
     await User.destroy({where})
     return userDeleted
 }
 
-const updateUserByIdInDB = async (values) => { 
+const updateUserByIdFirstNameLastNameEmailAndPasswordInDB = async (values) => { 
     if( !values.id ||
         !values.first_name || 
         !values.last_name || 
-        !values.email) throw new UserSearchError(NOT_ENOUGH_DATA)
-    const where = {id:values.id}
+        !values.email ||
+        !values.password) throw new UserUpdateError(NOT_ENOUGH_DATA)
+    const where = { id:values.id }
     const newValues = {
         first_name: values.first_name, 
-        last_name: values.last_name, 
-        email:values.email
+        last_name: values.last_name,
+        email:values.email,
+        password:values.password
     }
     await User.update(newValues,{where})
-    const userUpdated = await User.findAll({where,raw:true})
+    const userUpdated = await User.findByPk(values.id,{raw:true})
     return userUpdated
 }
 
@@ -60,5 +61,5 @@ module.exports = {
     getUserByEmailFromDB,
     getUserByIdFromDB,
     deleteUserByIdInDB,
-    updateUserByIdInDB,
+    updateUserByIdFirstNameLastNameEmailAndPasswordInDB,
 }

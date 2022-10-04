@@ -16,8 +16,12 @@ const renameAmounts = (amounts) => { // rename elements in amounts, a single one
 
 const renameSingleAmount = (amount) => {    
     if(amount['user.id']){
-        amount.creator = amount['user.id']
+        // amount.creator = amount['user.id']
         delete amount['user.id']
+    }
+    if(amount['type.id']){
+        amount.typeId = amount['type.id']
+        delete amount['type.id']
     }
     if(amount['type.movement']){
         amount.movement = amount['type.movement']
@@ -30,7 +34,7 @@ const renameSingleAmount = (amount) => {
     if(amount['type.default']){
         amount.default = amount['type.default']
         delete amount['type.default']
-    }
+    }        
     return amount
 }
 
@@ -39,8 +43,18 @@ const createAmountInDB = async (amountToCreate) => {
         !amountToCreate.amountType || 
         !amountToCreate.creator || 
         !amountToCreate.created_at) throw new AmountCreateError(NOT_ENOUGH_DATA)
-    const amountCreated = await Amount.create(amountToCreate)
-    const renamedAmount = renameAmounts(amountCreated)
+    const amount = await Amount.create(amountToCreate)
+    const where = {id: amount.dataValues.id}
+    const amountCreated = await Amount.findAll({
+        where, 
+        attributes: { exclude: ['amountType'] },
+        raw:true,
+        include: { 
+            all: true,
+            attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
+        }
+    })
+    const renamedAmount = renameAmounts(amountCreated[0])
     return renamedAmount
 }
 
@@ -71,7 +85,7 @@ const getAmountsByFilterFromDB = async (filter) => { // filter: creator id and t
         where, 
         attributes: { exclude: ['amountType'] },
         raw:true,
-        include: { 
+        include: {
             all: true,
             attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
         }
@@ -83,10 +97,10 @@ const getAmountsByFilterFromDB = async (filter) => { // filter: creator id and t
     else return null
 }
 
-const getAmountsByTypeIdFromDB = async (typeId) => { // filter: type id
+const getAtLeastOneAmountUsingThisTypeIdInDB = async (typeId) => { // type id
     if(!typeId) throw new AmountSearchError(NOT_ENOUGH_DATA)
-    const where = {type:typeId}
-    const amounts = await Amount.findAll({
+    const where = {amountType:typeId}
+    const singleAmount = await Amount.findOne({
         where, 
         attributes: { exclude: ['amountType','creator'] },
         raw:true,
@@ -95,9 +109,9 @@ const getAmountsByTypeIdFromDB = async (typeId) => { // filter: type id
             attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
         }
     })
-    if(amounts.length>0) {
-        const renamedAmounts = renameAmounts(amounts)
-        return renamedAmounts
+    if(singleAmount) {
+        const renamedAmount = renameAmounts(singleAmount)
+        return renamedAmount
     }
     else return null
 }
@@ -111,7 +125,7 @@ const getAmountsByCreatorIdFromDB = async (creatorId) => {
         raw:true,
         include: {
             all: true,
-            attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
+            attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
         }
     })
     if(amounts.length>0) {
@@ -168,7 +182,7 @@ module.exports = {
     createAmountInDB,
     getAmountByIdFromDB,
     getAmountsByFilterFromDB,
-    getAmountsByTypeIdFromDB,
+    getAtLeastOneAmountUsingThisTypeIdInDB,
     getAmountsByCreatorIdFromDB,
     deleteAmountByIdInDB,
     updateAmountByIdQuantityAndAmountTypeInDB,
