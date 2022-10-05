@@ -145,12 +145,29 @@ const createAmountByQuantityMovementTypeAndCreatorId = async (values) => {
     else return amountCreated
 }
 
+const deleteAllAmountsOfCreatorByCreatorId = async (creatorId) => {
+    if(!creatorId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
+    const amountsOfCreator = await getAmountsByCreatorIdFromDB(creatorId)
+    if(!amountsOfCreator) return null
+    if(amountsOfCreator.length>1) {
+        const amountsDeleted = await Promise.all(amountsOfCreator.map(async (amount) => {
+            const amountDeleted = await deleteAmountByIdInDB(amount.id)
+            return amountDeleted
+        }))
+        return amountsDeleted
+    } else {
+        const amountDeleted = await deleteAmountByIdInDB(amountsOfCreator.id)
+        return amountDeleted
+    }
+}
+
 const deleteAmountByIdAndCreatorId = async ({amountId,creatorId}) => {
     if(!amountId || !creatorId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
     const amountToDelete = await getAmountById(amountId)
-    if(!amountToDelete || amountToDelete.creator !== creatorId) throw new AmountDeleteError(AMOUNT_DELETING_ERROR)   
+    if(!amountToDelete) throw new AmountDeleteError(AMOUNT_NOT_FOUND)
+    if(amountToDelete.creator !== creatorId) throw new AmountDeleteError(ACCESS_UNAUTHORIZED)   
     const amountDeleted = await deleteAmountByIdInDB(amountId)
-    return amountDeleted 
+    return amountDeleted
 }
 
 const updateAmountByIdAndNewValues = async ({amountId,newValues:{quantity,amountType}}) => {
@@ -177,6 +194,7 @@ module.exports = {
     getAmountsByCreatorIdWithFilteringOption,
     createAmountByQuantityMovementTypeAndCreatorId,
     deleteAmountByIdAndCreatorId,
+    deleteAllAmountsOfCreatorByCreatorId,
     updateAmountByIdCreatorIdAndNewValues,
     isAnAmountUsingThisTypeId
 }

@@ -33,6 +33,7 @@ const createUserInDB = async (user) => {
 
 const deleteUserByIdInDB = async (userId) => {
     if(!userId) throw new UserDeleteError(NOT_ENOUGH_DATA)
+    const where = {id: userId}
     const userDeleted = await User.findByPk(userId,{raw:true})
     await User.destroy({where})
     return userDeleted
@@ -53,6 +54,7 @@ const updateUserByIdFirstNameLastNameEmailAndPasswordInDB = async (values) => {
     }
     await User.update(newValues,{where})
     const userUpdated = await User.findByPk(values.id,{raw:true})
+    delete userUpdated.password // delete password element
     return userUpdated
 }
 

@@ -1,9 +1,10 @@
 const { StatusCodes } = require('http-status-codes')
 const { JsonWebTokenError , TokenExpiredError } = require('jsonwebtoken')
 const {BaseError} = require('sequelize')
-const {UserCreateError, UserSearchError, UserUpdateError} = require('../errors/user-errors')
-const {USER_ALREADY_CREATED, PASSWORD_INCORRECT, ACCESS_UNAUTHORIZED, TOKEN_EXPIRED, TYPE_USED_IN_AMOUNT, USER_EMAIL_NOT_AVAILABLE, USER_UPDATING_UNAUTHORIZED} = require('../errors/error-msg-list')
+const {UserCreateError, UserSearchError, UserUpdateError, UserDeleteError} = require('../errors/user-errors')
+const {USER_ALREADY_CREATED, PASSWORD_INCORRECT, ACCESS_UNAUTHORIZED, TOKEN_EXPIRED, TYPE_USED_IN_AMOUNT, USER_EMAIL_NOT_AVAILABLE, USER_UPDATING_UNAUTHORIZED, USER_DELETING_UNAUTHORIZED, USER_NOT_FOUND, AMOUNT_NOT_FOUND} = require('../errors/error-msg-list')
 const { TypeDeleteError } = require('../errors/type-errors')
+const { AmountDeleteError } = require('../errors/amount-errors')
  
 const errorHandlerMiddleware = async (error, req, res, next) => {
   
@@ -35,14 +36,6 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
     error.statusCode = StatusCodes.UNAUTHORIZED
     customError.statusCode = error.statusCode
   }
-  if(error instanceof TypeDeleteError && error.message === ACCESS_UNAUTHORIZED) {
-    error.statusCode = StatusCodes.UNAUTHORIZED
-    customError.statusCode = error.statusCode
-  }
-  if(error instanceof TypeDeleteError && error.message === TYPE_USED_IN_AMOUNT) {
-    error.statusCode= StatusCodes.CONFLICT
-    customError.statusCode = error.statusCode
-  }
   if(error instanceof UserUpdateError && error.message === USER_EMAIL_NOT_AVAILABLE) {
     error.statusCode= StatusCodes.CONFLICT
     customError.statusCode = error.statusCode
@@ -51,6 +44,27 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
     error.statusCode= StatusCodes.UNAUTHORIZED
     customError.statusCode = error.statusCode
   }
+  if(error instanceof UserDeleteError && error.message === USER_DELETING_UNAUTHORIZED) {
+    error.statusCode= StatusCodes.UNAUTHORIZED
+    customError.statusCode = error.statusCode
+  }
+  if(error instanceof UserDeleteError && error.message === USER_NOT_FOUND) {
+    error.statusCode= StatusCodes.NOT_FOUND
+    customError.statusCode = error.statusCode
+  }
+  if(error instanceof TypeDeleteError && error.message === ACCESS_UNAUTHORIZED) {
+    error.statusCode = StatusCodes.UNAUTHORIZED
+    customError.statusCode = error.statusCode
+  }
+  if(error instanceof TypeDeleteError && error.message === TYPE_USED_IN_AMOUNT) {
+    error.statusCode= StatusCodes.CONFLICT
+    customError.statusCode = error.statusCode
+  }
+  if(error instanceof AmountDeleteError && error.message === AMOUNT_NOT_FOUND) {
+    error.statusCode= StatusCodes.NOT_FOUND
+    customError.statusCode = error.statusCode
+  }
+
 
   console.log("Error Handling Middleware called")
   console.log('Path: ', req.path)

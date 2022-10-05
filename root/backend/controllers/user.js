@@ -1,5 +1,5 @@
 
-const {updateUserByIdUserAndNewValuesAndGetUpdatedUserNewToken } = require('../services/user')
+const {updateUserByIdUserAndNewValuesGetEmailAndNewToken, deleteUserByIdAndUser } = require('../services/user')
 const {StatusCodes} = require('http-status-codes')
 const {BadRequestError} = require('../errors')
 const { PROVIDE_ALL_DATA } = require('../errors/error-msg-list')
@@ -13,12 +13,15 @@ const updateUser = async (req,res) => {
     const user = req.user    
     const newValues = {first_name, last_name, email, password}
 
-    const {updatedUser,token} = await updateUserByIdUserAndNewValuesAndGetUpdatedUserNewToken({id: userIdToUpdate, user:user, newValues})
-    res.status(StatusCodes.OK).json({updatedUser, token})
+    const {email:newEmail,token:newToken} = await updateUserByIdUserAndNewValuesGetEmailAndNewToken({id: userIdToUpdate, user:user, newValues})
+    res.status(StatusCodes.OK).json({User:newEmail, Token:newToken})
 }
 
 const deleteUser = async (req,res) => {
-    res.json('delete user')
+    const user = req.user
+    const {id:userId} = req.params
+    const {user:deletedUser,nTypes:nTypes,nAmounts:nAmounts} = await deleteUserByIdAndUser({id:userId, user:user})
+    res.status(StatusCodes.OK).json({User:deletedUser.email,nTypes:nTypes,nAmounts:nAmounts})
 }
 
 module.exports = {updateUser, deleteUser}

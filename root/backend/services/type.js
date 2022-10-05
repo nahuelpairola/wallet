@@ -117,8 +117,9 @@ const getDefaultAndCustomTypesByUserId = async (userId) => {
     const defaultTypes = await getDefaultTypes()
     if(defaultTypes) userTypes = [...defaultTypes]
     const customTypes = await getCustomTypesByCreatorId(userId)
-    if(customTypes && customTypes.length>1) userTypes = [...userTypes, ...customTypes]
-    else userTypes = [...userTypes, customTypes]
+    if(!customTypes) return userTypes
+    else if(customTypes.length>1) userTypes = [...userTypes, ...customTypes]
+    else userTypes = [...userTypes,customTypes]
     return userTypes
 }
 
@@ -154,8 +155,8 @@ const getTypeById = async (id) => {
 const getTypesByMovementNameAndUserId = async ({movement, name, userId}) => {
     if(!movement || !name || !userId) throw new TypeSearchError(NOT_ENOUGH_DATA)
     const typesMatched = await getDefaultAndCustomTypesByUserId(userId)
-    const typesMatchedFiltered = typesMatched.filter((type) => ((type.movement === movement) && (type.name === name)))
-    if(typesMatchedFiltered.length === 0) return null
+    const typesMatchedFiltered = typesMatched.filter(type => (movement == type.movement && name === type.name))
+    if(!typesMatchedFiltered) return null
     else return typesMatchedFiltered[0]
 }
 
@@ -175,17 +176,32 @@ const deleteTypeByIdAndCreator = async ({typeId:typeIdToDelete,creator:creator})
     if(!typeMatched) return null // type not founded
     if(isTypeIdUsedInAmounts(typeIdToDelete)) throw new TypeDeleteError(TYPE_USED_IN_AMOUNT)
     
-    if(isUserAnAdmin(creator) && typeMatched.default) { // if the type is default and the user is admin, delete type
-        // check if the type is used in amounts
-        const deletedDefaultType = await deleteTypeById(typeIdToDelete)
+    if(isUserAnAdmin(creator) && typeMatched.default) { // if the type is default and the user is admin
+        const deletedDefaultType = await deleteTypeById(typeIdToDelete) // check if the type is used in amounts
         return deleteCreatorOfEachType(deletedDefaultType)
     } else if(!isUserAnAdmin(creator) && typeMatched.creator === creator.id) { // if user is a normal user and is the creator of the type, delete it
         const deletedCustomType = await deleteTypeById(typeIdToDelete)
         return deleteCreatorOfEachType(deletedCustomType)
-    } else if (!isUserAnAdmin(creator) && typeMatched.creator !== creator.id) { // if user is a normal user and the type is not from that creator
+    } else if (!isUserAnAdmin(creator) && typeMatched.creator !== creator.id) { // if user is a normal user and the type is not of that creator
         throw new TypeDeleteError(ACCESS_UNAUTHORIZED)
     } else {
         throw new TypeDeleteError(TYPE_DELETING_ERROR)
+    }
+}
+
+const deleteAllCustomTypesOfCreatorByCreatorId = async (creatorId) => {
+    if(!creatorId) throw new TypeDeleteError(NOT_ENOUGH_DATA)
+    const typesToDelete = await getCustomTypesByCreatorId(creatorId)
+    if(!typesToDelete) return null
+    if(typesToDelete.length > 1) {
+        const deletedTypes = await Promise.all(typesToDelete.map(async (type) => {
+            const deletedCustomType = await deleteTypeById(type.id)
+            return deletedCustomType
+        }))
+        return deletedTypes
+    } else {
+        const deletedCustomType = await deleteTypeById(typesToDelete.id)
+        return deletedCustomType
     }
 }
 
@@ -228,6 +244,7 @@ module.exports = {
     getTypesByUserIdAndRole, // get types by user id and role
     getTypesByMovementNameAndUserId,
     deleteTypeByIdAndCreator, // delete a type
+    deleteAllCustomTypesOfCreatorByCreatorId, // delete all custom types of cretor
     updateTypeByIdAndUser, // update a type
     assignDefaultTypeByCreatorRole, // assign default element of type
     isMovement, // check if string is a movement

@@ -49,7 +49,7 @@ const getAmounts = async (req,res) => {
     if(created_at) filteringOption.created_at = created_at
     
     const amounts = await getAmountsByCreatorIdWithFilteringOption({creatorId:creator.id,filteringOption})
-    res.status(StatusCodes.OK).json({Hits:amounts.length,User: req.user.email, Amounts: amounts})
+    res.status(StatusCodes.OK).json({User: req.user.email, Amounts: amounts})
 }
 
 const deleteAmount = async (req,res) => {
@@ -57,7 +57,7 @@ const deleteAmount = async (req,res) => {
     if(!amountId) throw new BadRequestError(PROVIDE_ALL_DATA)
     const creator = req.user
     const amountDeleted = await deleteAmountByIdAndCreatorId({amountId, creatorId:creator.id})
-|   res.status(StatusCodes.OK).json({ User:req.user.email, AmountDeleted:amountDeleted })
+|   res.status(StatusCodes.OK).json({ User:req.user.email, AmountDeleted: amountDeleted })
 }
 
 const updateAmount = async (req,res) => {

@@ -9,17 +9,22 @@ const {
     updateUserByIdFirstNameLastNameEmailAndPasswordInDB
 } = require('../repository/user')
 
+const {
+    deleteAllAmountsOfCreatorByCreatorId
+} = require('./amount')
+
 const { PASSWORD_INCORRECT,
         USER_NOT_FOUND,
         NOT_ENOUGH_DATA,
         PROVIDE_ALL_DATA,
         USER_ALREADY_CREATED,
         USER_UPDATING_ERROR,
-        ACCESS_UNAUTHORIZED,
         USER_UPDATING_UNAUTHORIZED,
+        USER_DELETING_UNAUTHORIZED,
         } = require('../errors/error-msg-list')
 
-const { UserSearchError, UserNotFoundError, UserCreateError, UserUpdateError } = require('../errors/user-errors')
+const { UserSearchError, UserNotFoundError, UserCreateError, UserUpdateError, UserDeleteError } = require('../errors/user-errors')
+const { deleteAllCustomTypesOfCreatorByCreatorId } = require('./type')
 
 const generatePassword = async (password) => {
     const salt = await bcrypt.genSalt(10) // generate crypted password
@@ -94,7 +99,7 @@ const isUserAnAdmin = (user) => {
     else return false
 }
 
-const updateUserByIdUserAndNewValuesAndGetUpdatedUserNewToken = async ({id: userId, user , newValues}) => {
+const updateUserByIdUserAndNewValuesGetEmailAndNewToken = async ({id: userId, user , newValues}) => {
     if( !userId ||
         !user.id ||
         !user.email ||
@@ -103,10 +108,10 @@ const updateUserByIdUserAndNewValuesAndGetUpdatedUserNewToken = async ({id: user
         !newValues.email || 
         !newValues.password ) throw new UserUpdateError(NOT_ENOUGH_DATA)
 
-    if(userId !== user.id) throw new UserUpdateError(USER_UPDATING_UNAUTHORIZED)
+    if(userId !== user.id) throw new UserUpdateError(USER_UPDATING_UNAUTHORIZED) // check user acces vs user id to update
     
     const isAnyUserWithNewEmail = await getUserByEmailFromDB(newValues.email) //check if the email is available
-    if(isAnyUserWithNewEmail) throw new UserUpdateError(USER_EMAIL_NOT_AVAILABLE)
+    if(isAnyUserWithNewEmail && isAnyUserWithNewEmail.id !== userId) throw new UserUpdateError(USER_EMAIL_NOT_AVAILABLE)
 
     newValues.password = await generatePassword(newValues.password) // cript new passwrod
 
@@ -121,7 +126,36 @@ const updateUserByIdUserAndNewValuesAndGetUpdatedUserNewToken = async ({id: user
     if(!updatedUser) throw new UserUpdateError(USER_UPDATING_ERROR)
     else {
         const token = generateTokenByEmail(updatedUser.email)
-        return {updatedUser,token}
+        return {email:updatedUser.email,token:token}
+    }
+}
+
+const deleteUserByIdAndUser = async ({id: userId, user:{id,email}}) => {
+    if(!userId || !id || !email) throw new UserDeleteError(NOT_ENOUGH_DATA)
+    if(userId !== id) throw new UserDeleteError(USER_DELETING_UNAUTHORIZED)
+    const userMatched = await getUserByEmailFromDB(email)
+    if(!userMatched) throw new UserDeleteError(USER_NOT_FOUND)
+    if(userMatched.id !== userId) throw new UserDeleteError(USER_DELETING_UNAUTHORIZED)
+    // check user role
+    if(isUserAnAdmin(userMatched)) { 
+        // user is an admin, just delete user
+        const userDeleted = await deleteUserByIdInDB(userId)
+        return userDeleted
+    } else {
+        // user is a normal one:
+        // 1. delete amounts
+        // 2. delete custom types
+        // 3. delete user
+        const amountsDeleted = await deleteAllAmountsOfCreatorByCreatorId(userId)
+        const customTypesDeleted = await deleteAllCustomTypesOfCreatorByCreatorId(userId)
+        const userDeleted = await deleteUserByIdInDB(userId)
+        let nAmounts = null
+        let nTypes = null
+        if(!amountsDeleted) nAmounts = 0
+        else nAmounts = amountsDeleted.length
+        if(!customTypesDeleted) nTypes = 0
+        else nTypes = customTypesDeleted.length
+        return {user:userDeleted,nTypes:nTypes,nAmounts:nAmounts}
     }
 }
 
@@ -130,5 +164,6 @@ module.exports = {
     getTokenByEmailAndPassword,
     getUserByToken,
     isUserAnAdmin,
-    updateUserByIdUserAndNewValuesAndGetUpdatedUserNewToken,
+    updateUserByIdUserAndNewValuesGetEmailAndNewToken,
+    deleteUserByIdAndUser,
 }
