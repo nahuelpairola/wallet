@@ -1,12 +1,16 @@
 
 const { ServiceError} = require('../errors')
-const { AmountSearchError, AmountCreateError, AmountDeleteError, AmountUpdateError } = require('../errors/amount-errors')
+const { 
+    AmountSearchError,
+    AmountCreateError,
+    AmountDeleteError,
+    AmountUpdateError
+} = require('../errors/amount-errors')
 const {
     NOT_ENOUGH_DATA,
     AMOUNT_CREATION_ERROR, 
     TYPE_NOT_FOUND, 
-    PROVIDE_CORRECT_DATA, 
-    AMOUNT_DELETING_ERROR, 
+    PROVIDE_CORRECT_DATA,
     AMOUNT_NOT_FOUND, 
     AMOUNT_UPDATING_ERROR, 
     ACCESS_UNAUTHORIZED 
@@ -18,10 +22,12 @@ const {
     getAmountsByCreatorIdFromDB,
     deleteAmountByIdInDB,
     updateAmountByIdQuantityAndAmountTypeInDB,
-    getAtLeastOneAmountUsingThisTypeIdInDB,
 } = require('../repository/amount')
 
-const { getTypesByMovementNameAndUserId , isMovement } = require('./type')
+const { 
+    getTypesByMovementNameAndUserId,
+    isMovement
+} = require('./type')
 
 const isDate = (date) => {
     return (new Date(date) !== "Invalid Date") && !isNaN(new Date(date));
@@ -83,12 +89,12 @@ const filterAmountsByTypes = (amounts,typesString) => {
     return amountsToFilter
 }
 
-const isAnAmountUsingThisTypeId = async (typeId) => {
-    if(!typeId) throw new ServiceError(NOT_ENOUGH_DATA)
-    const amount = await getAtLeastOneAmountUsingThisTypeIdInDB(typeId)
-    if(amount) return Promise.resolve(true)
-    else return Promise.resolve(false)
-}
+// const isAnAmountUsingThisTypeId = async (typeId) => {
+//     if(!typeId) throw new ServiceError(NOT_ENOUGH_DATA)
+//     const amount = await getAtLeastOneAmountUsingThisTypeIdInDB(typeId)
+//     if(amount) return Promise.resolve(true)
+//     else return Promise.resolve(false)
+// }
 
 const getAmountsByCreatorIdWithFilteringOption = async ({creatorId,filteringOption}) => {
     if(!creatorId) throw new AmountSearchError(NOT_ENOUGH_DATA)
@@ -128,18 +134,15 @@ const createAmountByQuantityMovementTypeAndCreatorId = async (values) => {
         !values.movement || 
         !values.type ||
         !values.creatorId ) throw new AmountCreateError(NOT_ENOUGH_DATA)
-
     // check if the type (movement and name) is a default one or its a custom one and belongs to the user
     const typeMatched = await getTypesByMovementNameAndUserId({movement:values.movement,name:values.type,userId:values.creatorId})
     if(!typeMatched) throw new AmountCreateError(TYPE_NOT_FOUND)
-    
     const amountToCreate = {
         quantity: Number(values.quantity),
         amountType: Number(typeMatched.id),
         creator: Number(values.creatorId),
         created_at: new Date(),
     }
-    
     const amountCreated = await createAmountInDB(amountToCreate)
     if(!amountCreated) throw new AmountCreateError(AMOUNT_CREATION_ERROR)
     else return amountCreated
@@ -196,7 +199,5 @@ module.exports = {
     deleteAmountByIdAndCreatorId,
     deleteAllAmountsOfCreatorByCreatorId,
     updateAmountByIdCreatorIdAndNewValues,
-    isAnAmountUsingThisTypeId
 }
 
-// exports.isAnAmountUsingThisTypeId = isAnAmountUsingThisTypeId

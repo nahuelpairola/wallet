@@ -22,7 +22,7 @@ const getTypeByIdFromDB = async (typeId) => {
     else return null // type not founded
 }
 
-const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement, name or default
+const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement, name and default
     if( !filter.creator &&
         !filter.movement &&
         !filter.name &&
@@ -35,7 +35,7 @@ const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement,
 
     const types = await Type.findAll({where,raw:true})
     if(types.length>0) {
-        if(types.length === 1) return types[0] // found one type
+        // if(types.length === 1) return types[0] // found one type
         return types 
     } else return null // types not founded
 }
@@ -45,7 +45,7 @@ const getTypesByCreatorIdFromDB = async (creatorId) => {
     const where = {creator: creatorId}
     const types = await Type.findAll({where,raw:true})
     if(types.length>0) {
-        if(types.length === 1) return types[0]
+        // if(types.length === 1) return types[0]
         return types
     } else return null // types not founded
 }
@@ -57,6 +57,7 @@ const deleteTypeByIdInDB = async (typeId) => {
     if(!typeToDelete) return null
     await Type.destroy({where})
     return typeToDelete[0]
+    // return typeToDelete
 }
 
 const updateNameAndMovementInTypeByIdInDB = async (idNameAndMovement) => { // values must contain type id
@@ -74,6 +75,7 @@ const updateNameAndMovementInTypeByIdInDB = async (idNameAndMovement) => { // va
         raw:true
     })
     return type[0]
+    // return type
 }
 
 const isMovement = (movementToCompare) => {

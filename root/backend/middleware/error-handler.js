@@ -41,11 +41,11 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
     customError.statusCode = error.statusCode
   }
   if(error instanceof UserUpdateError && error.message === USER_UPDATING_UNAUTHORIZED) {
-    error.statusCode= StatusCodes.UNAUTHORIZED
+    error.statusCode= StatusCodes.FORBIDDEN
     customError.statusCode = error.statusCode
   }
   if(error instanceof UserDeleteError && error.message === USER_DELETING_UNAUTHORIZED) {
-    error.statusCode= StatusCodes.UNAUTHORIZED
+    error.statusCode= StatusCodes.FORBIDDEN
     customError.statusCode = error.statusCode
   }
   if(error instanceof UserDeleteError && error.message === USER_NOT_FOUND) {

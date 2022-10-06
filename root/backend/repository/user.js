@@ -1,6 +1,11 @@
 const { User } = require('../models')
 const { NOT_ENOUGH_DATA } = require('../errors/error-msg-list')
-const { UserSearchError, UserDeleteError, UserCreateError, UserUpdateError } = require('../errors/user-errors')
+const { 
+    UserSearchError, 
+    UserDeleteError, 
+    UserCreateError, 
+    UserUpdateError 
+} = require('../errors/user-errors')
 
 const getUserByEmailFromDB = async (userEmail) => {
     if(!userEmail) throw new UserSearchError(NOT_ENOUGH_DATA)
@@ -14,11 +19,9 @@ const getUserByEmailFromDB = async (userEmail) => {
 
 const getUserByIdFromDB = async (userId) => {
     if(!userId) throw new UserSearchError(NOT_ENOUGH_DATA) 
-    const where = {id:userId}
-    const user = await User.findAll({where,raw:true})
-    if(user.length>0) {
-        return user[0]
-    }
+    const user = await User.findByPk(userId,{raw:true})
+    if(user) return user
+    else return null
 }
 
 const createUserInDB = async (user) => {

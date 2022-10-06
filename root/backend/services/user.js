@@ -6,25 +6,37 @@ const {
     createUserInDB, 
     getUserByEmailFromDB,
     deleteUserByIdInDB,
-    updateUserByIdFirstNameLastNameEmailAndPasswordInDB
+    updateUserByIdFirstNameLastNameEmailAndPasswordInDB,
 } = require('../repository/user')
 
 const {
     deleteAllAmountsOfCreatorByCreatorId
 } = require('./amount')
 
+const { 
+    deleteAllCustomTypesOfCreatorByCreatorId
+} = require('./type')
+
+const {
+    isUserAnAdmin
+} = require('../services/usersTypesAndAmounts')
+
 const { PASSWORD_INCORRECT,
         USER_NOT_FOUND,
         NOT_ENOUGH_DATA,
-        PROVIDE_ALL_DATA,
         USER_ALREADY_CREATED,
         USER_UPDATING_ERROR,
         USER_UPDATING_UNAUTHORIZED,
         USER_DELETING_UNAUTHORIZED,
         } = require('../errors/error-msg-list')
 
-const { UserSearchError, UserNotFoundError, UserCreateError, UserUpdateError, UserDeleteError } = require('../errors/user-errors')
-const { deleteAllCustomTypesOfCreatorByCreatorId } = require('./type')
+const {
+    UserSearchError, 
+    UserNotFoundError, 
+    UserCreateError, 
+    UserUpdateError, 
+    UserDeleteError 
+} = require('../errors/user-errors')
 
 const generatePassword = async (password) => {
     const salt = await bcrypt.genSalt(10) // generate crypted password
@@ -61,8 +73,8 @@ const getTokenByEmailAndPassword = async (emailAndPassword) => {
 const getUserByToken = async (token) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET)    
     const userMatched = await getUserByEmailFromDB(payload.email)
-    if(!userMatched) throw new UserNotFoundError(USER_NOT_FOUND)
-    return userMatched
+    if(!userMatched) return null
+    else return userMatched
 }
 
 // store user and returns token
@@ -91,12 +103,6 @@ const createUser = async (user) => {
 
         return ( { email: user.email, token: token } )
     } else throw new UserCreateError(USER_ALREADY_CREATED)
-}
-
-const isUserAnAdmin = (user) => {
-    if(!user.role) throw new UserSearchError(PROVIDE_ALL_DATA)
-    if(user.role === 'admin') return true
-    else return false
 }
 
 const updateUserByIdUserAndNewValuesGetEmailAndNewToken = async ({id: userId, user , newValues}) => {
@@ -163,7 +169,6 @@ module.exports = {
     createUser,
     getTokenByEmailAndPassword,
     getUserByToken,
-    isUserAnAdmin,
     updateUserByIdUserAndNewValuesGetEmailAndNewToken,
     deleteUserByIdAndUser,
 }

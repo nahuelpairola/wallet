@@ -29,7 +29,6 @@ app.use('/api/v1/user', authenticationMiddleware, userRoutes)
 app.use(notFoundMiddleware)
 app.use(errorHandlerMiddleware)
 
-
 // start
 const port = process.env.PORT 
 

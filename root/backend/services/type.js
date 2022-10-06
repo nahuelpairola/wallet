@@ -24,9 +24,9 @@ const {
     isMovement
 } = require('../repository/type')
 
-const { isAnAmountUsingThisTypeId } = require('./amount')
+const { isAnAmountUsingThisTypeId } = require('./usersTypesAndAmounts')
 
-const { isUserAnAdmin } = require('./user')
+const { isUserAnAdmin } = require('./usersTypesAndAmounts')
 
 const deleteCreatorOfEachType = (types) => {
     if(types.length>1) {
@@ -43,8 +43,8 @@ const deleteCreatorOfEachType = (types) => {
 
 const isTypeIdUsedInAmounts = async (typeId) => {
     const isTheTypeUsed = await isAnAmountUsingThisTypeId(typeId)
-    if(isTheTypeUsed) return Promise.resolve(true)
-    else return Promise.resolve(false)
+    if(isTheTypeUsed) return true
+    else return false
 }
 
 const createNewType = async (newType) => {
