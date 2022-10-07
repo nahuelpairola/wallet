@@ -4,8 +4,9 @@ const {
     TYPE_DELETING_ERROR,
     TYPE_NOT_FOUND,
     PROVIDE_CORRECT_DATA,
-    ACCESS_UNAUTHORIZED,
     TYPE_USED_IN_AMOUNT,
+    TYPE_ALREADY_CREATED,
+    TYPE_DELETE_UNAUTHORIZED,
 } = require('../errors/error-msg-list')
 const { ServiceError } = require('../errors')
 const {
@@ -67,7 +68,7 @@ const createNewType = async (newType) => {
         name:typeToCreate.name,
         default:true})
     if (!typeByDefaultMatched) { // if theres not default type matched
-        if (newType.default) { 
+        if (newType.default) {
             const createdDefaultType = await createTypeInDB(typeToCreate) // if the type to create is a default one, create it
             return (deleteCreatorOfEachType(createdDefaultType)) // returns new type by default
         } else { // new type should be a custom one
@@ -81,9 +82,9 @@ const createNewType = async (newType) => {
             if (!customTypeMatched) { // if not exists, create a new custom type
                 const storedCustomType = await createTypeInDB(typeToCreate)
                 return (deleteCreatorOfEachType(storedCustomType))
-            } else return deleteCreatorOfEachType(customTypeMatched)
+            } else throw new TypeCreateError(TYPE_ALREADY_CREATED)
         }
-    } else return deleteCreatorOfEachType(typeByDefaultMatched)
+    } else throw new TypeCreateError(TYPE_ALREADY_CREATED)
 }
 
 const getTypesByFilter = async (values) => {
@@ -94,20 +95,19 @@ const getTypesByFilter = async (values) => {
     if (values.creator) filter.creator = values.creator
     const types = await getTypesByFilterFromDB(filter)
     if (types) return types
-    else return null
+    else return []
 }
 
 const getDefaultTypes = async () => {
     const defaultTypes = await getTypesByFilterFromDB({default: true})
-    if(!defaultTypes) return null
-    else return defaultTypes
+    return defaultTypes
 }
 
 const getCustomTypesByCreatorId = async (creatorId) => {
     if(!creatorId) throw new TypeSearchError(NOT_ENOUGH_DATA)
     const customTypes = await getTypesByFilter({creator:creatorId,default:false})
     if(customTypes) return customTypes
-    else return null
+    else return []
 }
 
 const getDefaultAndCustomTypesByUserId = async (userId) => {
@@ -117,9 +117,8 @@ const getDefaultAndCustomTypesByUserId = async (userId) => {
     const defaultTypes = await getDefaultTypes()
     if(defaultTypes) userTypes = [...defaultTypes]
     const customTypes = await getCustomTypesByCreatorId(userId)
-    if(!customTypes) return userTypes
-    else if(customTypes.length>1) userTypes = [...userTypes, ...customTypes]
-    else userTypes = [...userTypes,customTypes]
+    if(customTypes.length<1) return userTypes
+    else userTypes = [...userTypes, ...customTypes]
     return userTypes
 }
 
@@ -145,7 +144,6 @@ const getTypesByUserIdAndRole = async (user) => {
 }
 
 const getTypeById = async (id) => {
-    // the type can be a default or a custom one
     if (!id) throw new TypeSearchError(NOT_ENOUGH_DATA)
     const type = await getTypeByIdFromDB(id)
     if (type) return type
@@ -156,7 +154,7 @@ const getTypesByMovementNameAndUserId = async ({movement, name, userId}) => {
     if(!movement || !name || !userId) throw new TypeSearchError(NOT_ENOUGH_DATA)
     const typesMatched = await getDefaultAndCustomTypesByUserId(userId)
     const typesMatchedFiltered = typesMatched.filter(type => (movement == type.movement && name === type.name))
-    if(!typesMatchedFiltered) return null
+    if(!typesMatchedFiltered) return []
     else return typesMatchedFiltered[0]
 }
 
@@ -174,7 +172,7 @@ const deleteTypeByIdAndCreator = async ({typeId:typeIdToDelete,creator:creator})
 
     const typeMatched = await getTypeById(typeIdToDelete)
     if(!typeMatched) return null // type not founded
-    if(isTypeIdUsedInAmounts(typeIdToDelete)) throw new TypeDeleteError(TYPE_USED_IN_AMOUNT)
+    if(await isTypeIdUsedInAmounts(typeIdToDelete)) throw new TypeDeleteError(TYPE_USED_IN_AMOUNT)
     
     if(isUserAnAdmin(creator) && typeMatched.default) { // if the type is default and the user is admin
         const deletedDefaultType = await deleteTypeById(typeIdToDelete) // check if the type is used in amounts
@@ -183,7 +181,7 @@ const deleteTypeByIdAndCreator = async ({typeId:typeIdToDelete,creator:creator})
         const deletedCustomType = await deleteTypeById(typeIdToDelete)
         return deleteCreatorOfEachType(deletedCustomType)
     } else if (!isUserAnAdmin(creator) && typeMatched.creator !== creator.id) { // if user is a normal user and the type is not of that creator
-        throw new TypeDeleteError(ACCESS_UNAUTHORIZED)
+        throw new TypeDeleteError(TYPE_DELETE_UNAUTHORIZED)
     } else {
         throw new TypeDeleteError(TYPE_DELETING_ERROR)
     }
@@ -192,16 +190,13 @@ const deleteTypeByIdAndCreator = async ({typeId:typeIdToDelete,creator:creator})
 const deleteAllCustomTypesOfCreatorByCreatorId = async (creatorId) => {
     if(!creatorId) throw new TypeDeleteError(NOT_ENOUGH_DATA)
     const typesToDelete = await getCustomTypesByCreatorId(creatorId)
-    if(!typesToDelete) return null
-    if(typesToDelete.length > 1) {
+    if(typesToDelete.length < 1) return []
+    else {
         const deletedTypes = await Promise.all(typesToDelete.map(async (type) => {
             const deletedCustomType = await deleteTypeById(type.id)
             return deletedCustomType
         }))
         return deletedTypes
-    } else {
-        const deletedCustomType = await deleteTypeById(typesToDelete.id)
-        return deletedCustomType
     }
 }
 

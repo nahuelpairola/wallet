@@ -89,33 +89,21 @@ const filterAmountsByTypes = (amounts,typesString) => {
     return amountsToFilter
 }
 
-// const isAnAmountUsingThisTypeId = async (typeId) => {
-//     if(!typeId) throw new ServiceError(NOT_ENOUGH_DATA)
-//     const amount = await getAtLeastOneAmountUsingThisTypeIdInDB(typeId)
-//     if(amount) return Promise.resolve(true)
-//     else return Promise.resolve(false)
-// }
-
 const getAmountsByCreatorIdWithFilteringOption = async ({creatorId,filteringOption}) => {
     if(!creatorId) throw new AmountSearchError(NOT_ENOUGH_DATA)
-
     let amountsToProcess = await getAmountsByCreatorIdFromDB(creatorId)
-
     if(filteringOption.created_at) { // check if there are creation dates to filter
          // format -> <startDate>;<endDate>
         amountsToProcess = filterAmountsByCreationDate(amountsToProcess,filteringOption.created_at)
     }
-
     if(filteringOption.quantity) { // checking if there are quantites to filter
         // format -> <minQuantity>;<maxQuantity>
         amountsToProcess = filterAmountsByQuantity(amountsToProcess,filteringOption.quantity)
     }
-
     if(filteringOption.movement) {
         // format -> 'input' or 'output'
         amountsToProcess = filterAmountsByMovement(amountsToProcess,filteringOption.movement)
     }
-
     if(filteringOption.type) {
         // format -> <typeName1>,<typeName2>,...,<typeNameX>
         amountsToProcess = filterAmountsByTypes(amountsToProcess,filteringOption.type)
@@ -151,7 +139,7 @@ const createAmountByQuantityMovementTypeAndCreatorId = async (values) => {
 const deleteAllAmountsOfCreatorByCreatorId = async (creatorId) => {
     if(!creatorId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
     const amountsOfCreator = await getAmountsByCreatorIdFromDB(creatorId)
-    if(!amountsOfCreator) return null
+    if(amountsOfCreator.length === 0) return []
     if(amountsOfCreator.length>1) {
         const amountsDeleted = await Promise.all(amountsOfCreator.map(async (amount) => {
             const amountDeleted = await deleteAmountByIdInDB(amount.id)
@@ -200,4 +188,3 @@ module.exports = {
     deleteAllAmountsOfCreatorByCreatorId,
     updateAmountByIdCreatorIdAndNewValues,
 }
-

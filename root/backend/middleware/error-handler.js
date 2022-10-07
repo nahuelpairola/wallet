@@ -2,9 +2,23 @@ const { StatusCodes } = require('http-status-codes')
 const { JsonWebTokenError , TokenExpiredError } = require('jsonwebtoken')
 const {BaseError} = require('sequelize')
 const {UserCreateError, UserSearchError, UserUpdateError, UserDeleteError} = require('../errors/user-errors')
-const {USER_ALREADY_CREATED, PASSWORD_INCORRECT, ACCESS_UNAUTHORIZED, TOKEN_EXPIRED, TYPE_USED_IN_AMOUNT, USER_EMAIL_NOT_AVAILABLE, USER_UPDATING_UNAUTHORIZED, USER_DELETING_UNAUTHORIZED, USER_NOT_FOUND, AMOUNT_NOT_FOUND} = require('../errors/error-msg-list')
-const { TypeDeleteError } = require('../errors/type-errors')
-const { AmountDeleteError } = require('../errors/amount-errors')
+const { TypeDeleteError, TypeCreateError } = require('../errors/type-errors')
+const { AmountDeleteError, AmountUpdateError } = require('../errors/amount-errors')
+const {
+  USER_ALREADY_CREATED, 
+  PASSWORD_INCORRECT, 
+  TOKEN_EXPIRED, 
+  TYPE_USED_IN_AMOUNT, 
+  USER_EMAIL_NOT_AVAILABLE, 
+  USER_UPDATING_UNAUTHORIZED, 
+  USER_DELETING_UNAUTHORIZED, 
+  USER_NOT_FOUND, 
+  AMOUNT_NOT_FOUND, 
+  TYPE_ALREADY_CREATED, 
+  TYPE_DELETE_UNAUTHORIZED,
+  TYPE_NOT_FOUND,
+  NOT_ENOUGH_DATA
+} = require('../errors/error-msg-list')
  
 const errorHandlerMiddleware = async (error, req, res, next) => {
   
@@ -52,7 +66,11 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
     error.statusCode= StatusCodes.NOT_FOUND
     customError.statusCode = error.statusCode
   }
-  if(error instanceof TypeDeleteError && error.message === ACCESS_UNAUTHORIZED) {
+  if(error instanceof TypeCreateError && error.message === TYPE_ALREADY_CREATED) {
+    error.statusCode = StatusCodes.CONFLICT
+    customError.statusCode = error.statusCode
+  }  
+  if(error instanceof TypeDeleteError && error.message === TYPE_DELETE_UNAUTHORIZED) {
     error.statusCode = StatusCodes.UNAUTHORIZED
     customError.statusCode = error.statusCode
   }
@@ -60,10 +78,15 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
     error.statusCode= StatusCodes.CONFLICT
     customError.statusCode = error.statusCode
   }
+  if(error instanceof AmountUpdateError && error.message === TYPE_NOT_FOUND) {
+    error.statusCode= StatusCodes.NOT_FOUND
+    customError.statusCode = error.statusCode
+  }
   if(error instanceof AmountDeleteError && error.message === AMOUNT_NOT_FOUND) {
     error.statusCode= StatusCodes.NOT_FOUND
     customError.statusCode = error.statusCode
   }
+  if(error.message === NOT_ENOUGH_DATA) error.message = 'PLEASE CONTACT WITH SUPPORT, INTERNAL SERVER ERROR'
 
 
   console.log("Error Handling Middleware called")

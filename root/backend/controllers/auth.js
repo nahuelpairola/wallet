@@ -23,7 +23,7 @@ const registration = async (req, res) => {
     if(role) user.role = role
 
     const newUser = await createUser(user)
-    res.status(StatusCodes.CREATED).json({newUser})
+    res.status(StatusCodes.CREATED).json({User:newUser.email,Token:newUser.token})
 }
 
 module.exports = {login, registration}

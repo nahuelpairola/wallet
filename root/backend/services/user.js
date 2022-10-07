@@ -155,13 +155,7 @@ const deleteUserByIdAndUser = async ({id: userId, user:{id,email}}) => {
         const amountsDeleted = await deleteAllAmountsOfCreatorByCreatorId(userId)
         const customTypesDeleted = await deleteAllCustomTypesOfCreatorByCreatorId(userId)
         const userDeleted = await deleteUserByIdInDB(userId)
-        let nAmounts = null
-        let nTypes = null
-        if(!amountsDeleted) nAmounts = 0
-        else nAmounts = amountsDeleted.length
-        if(!customTypesDeleted) nTypes = 0
-        else nTypes = customTypesDeleted.length
-        return {user:userDeleted,nTypes:nTypes,nAmounts:nAmounts}
+        return {user:userDeleted,nTypes:customTypesDeleted.length,nAmounts:amountsDeleted.length}
     }
 }
 

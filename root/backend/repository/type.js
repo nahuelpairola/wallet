@@ -33,7 +33,7 @@ const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement,
     if(filter.name) where.name = filter.name //add type name if filter require
     if(typeof filter.default !== 'undefined') where.default = filter.default // add default; true or false
 
-    const types = await Type.findAll({where,raw:true})
+    const types = await Type.findAll({where,raw:true,order: [['id', 'ASC']]})
     if(types.length>0) {
         // if(types.length === 1) return types[0] // found one type
         return types 
@@ -43,7 +43,7 @@ const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement,
 const getTypesByCreatorIdFromDB = async (creatorId) => {
     if(!creatorId) throw new TypeSearchError(NOT_ENOUGH_DATA)
     const where = {creator: creatorId}
-    const types = await Type.findAll({where,raw:true})
+    const types = await Type.findAll({where,raw:true,order: [['id', 'ASC']]})
     if(types.length>0) {
         // if(types.length === 1) return types[0]
         return types

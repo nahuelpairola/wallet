@@ -8,7 +8,7 @@ const { getAmountsByCreatorIdWithFilteringOption,
 
 const {isMovement} = require('../services/type')
 
-const {BadRequestError, NotFoundError, UnauthenticatedError} = require('../errors')
+const {BadRequestError} = require('../errors')
 const { PROVIDE_ALL_DATA, PROVIDE_CORRECT_DATA } = require('../errors/error-msg-list')
     
 const createAmount = async (req,res) => {
@@ -49,7 +49,7 @@ const getAmounts = async (req,res) => {
     if(created_at) filteringOption.created_at = created_at
     
     const amounts = await getAmountsByCreatorIdWithFilteringOption({creatorId:creator.id,filteringOption})
-    res.status(StatusCodes.OK).json({User: req.user.email, Amounts: amounts})
+    res.status(StatusCodes.OK).json({User: req.user.email, nAmounts: amounts.length, Amounts: amounts})
 }
 
 const deleteAmount = async (req,res) => {
@@ -57,17 +57,12 @@ const deleteAmount = async (req,res) => {
     if(!amountId) throw new BadRequestError(PROVIDE_ALL_DATA)
     const creator = req.user
     const amountDeleted = await deleteAmountByIdAndCreatorId({amountId, creatorId:creator.id})
-|   res.status(StatusCodes.OK).json({ User:req.user.email, AmountDeleted: amountDeleted })
+   res.status(StatusCodes.OK).json({ User: creator.email, AmountDeleted: amountDeleted})
 }
 
 const updateAmount = async (req,res) => {
     const {id:amountId} = req.params
-    const {
-        quantity:quantity,
-        movement:movement,
-        type:type,
-    } = req.body
-
+    const {quantity:quantity, movement:movement, type:type} = req.body
     if(!amountId || !quantity || !movement || !type) throw new BadRequestError(PROVIDE_ALL_DATA)
     
     const creator = req.user

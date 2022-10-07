@@ -4,19 +4,14 @@ const { NOT_ENOUGH_DATA } = require('../errors/error-msg-list')
 const { Amount} = require('../models')
 
 const renameAmounts = (amounts) => { // rename elements in amounts, a single one or an array
-    if(amounts.length>1) { // for amount array
-        const amountsToProcess = amounts.map(amount=>{
-            return renameSingleAmount(amount) // rename single amount
-        })
-        return amountsToProcess
-    } else { // for single amount
-        return renameSingleAmount(amounts) 
-    }
+    const renamedAmounts = amounts.map( (amount) => {
+        return renameSingleAmount(amount) // rename single amount
+    })
+    return renamedAmounts
 }
 
 const renameSingleAmount = (amount) => {    
     if(amount['user.id']){
-        // amount.creator = amount['user.id']
         delete amount['user.id']
     }
     if(amount['type.id']){
@@ -31,7 +26,7 @@ const renameSingleAmount = (amount) => {
         amount.type = amount['type.name']
         delete amount['type.name']
     }        
-    if(amount['type.default']){
+    if(typeof amount['type.default'] !== 'undefined'){
         amount.default = amount['type.default']
         delete amount['type.default']
     }        
@@ -44,37 +39,23 @@ const createAmountInDB = async (amountToCreate) => {
         !amountToCreate.creator || 
         !amountToCreate.created_at) throw new AmountCreateError(NOT_ENOUGH_DATA)
     const amount = await Amount.create(amountToCreate)
-    const where = {id: amount.dataValues.id}
-    const amountCreated = await Amount.findAll({
-        where, 
-        attributes: { exclude: ['amountType'] },
-        raw:true,
-        include: { 
-            all: true,
-            attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
-        }
-    })
-    const renamedAmount = renameAmounts(amountCreated[0])
-    return renamedAmount
+    const amountCreated = await getAmountByIdFromDB(amount.dataValues.id)
+    return amountCreated
 }
 
 const getAmountByIdFromDB = async (amountId) => {
     if(!amountId) throw new AmountSearchError(NOT_ENOUGH_DATA)
-    const where = {id: amountId}
-    const amount = await Amount.findAll({
-        where, 
+    // const where = {id: amountId}
+    const amount = await Amount.findByPk(amountId,{
         attributes: { exclude: ['amountType'] },
         raw:true,
         include: { 
             all: true,
-            attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
+            attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
         }
     })
-    if(amount.length>0) {
-        const renamedAmount = renameAmounts(amount[0])
-        return renamedAmount
-    }
-    else return null
+    const renamedAmount = renameSingleAmount(amount)
+    return renamedAmount
 }
 
 const getAmountsByFilterFromDB = async (filter) => { // filter: creator id and type id
@@ -90,11 +71,8 @@ const getAmountsByFilterFromDB = async (filter) => { // filter: creator id and t
             attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
         }
     })
-    if(amounts.length>0) {
-        const renamedAmounts = renameAmounts(amounts)
-        return renamedAmounts
-    }
-    else return null
+    const renamedAmounts = renameAmounts(amounts)
+    return renamedAmounts
 }
 
 const getAtLeastOneAmountUsingThisTypeIdInDB = async (typeId) => { // type id
@@ -102,18 +80,15 @@ const getAtLeastOneAmountUsingThisTypeIdInDB = async (typeId) => { // type id
     const where = {amountType:typeId}
     const singleAmount = await Amount.findOne({
         where, 
-        attributes: { exclude: ['amountType','creator'] },
+        attributes: { exclude: ['amountType'] },
         raw:true,
         include: { 
             all: true,
             attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
         }
     })
-    if(singleAmount) {
-        const renamedAmount = renameAmounts(singleAmount)
-        return renamedAmount
-    }
-    else return null
+    const renamedAmount = renameSingleAmount(singleAmount)
+    return renamedAmount
 }
 
 const getAmountsByCreatorIdFromDB = async (creatorId) => {
@@ -126,30 +101,19 @@ const getAmountsByCreatorIdFromDB = async (creatorId) => {
         include: {
             all: true,
             attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
-        }
+        },
+        order: [['id', 'ASC']]
     })
-    if(amounts.length>0) {
-        const renamedAmounts = renameAmounts(amounts)
-        return renamedAmounts
-    }
-    else return null
+    const renamedAmounts = renameAmounts(amounts)
+    return renamedAmounts
 }
 
 const deleteAmountByIdInDB = async (amountId) => {
     if(!amountId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
+    const amountDeleted = await getAmountByIdFromDB(amountId)
     const where = {id:amountId}
-    const amount = await Amount.findAll({ // get amount to return as amount deleted
-        where, 
-        attributes: { exclude: ['amountType'] },
-        raw:true,
-        include: { 
-            all: true,
-            attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
-        }
-    }) 
-    await Amount.destroy({where}) // destroying amount in db
-    const renamedAmount = renameAmounts(amount[0])
-    return renamedAmount
+    await Amount.destroy({where}) // destroy amount in db
+    return amountDeleted
 }
 
 const updateAmountByIdQuantityAndAmountTypeInDB = async (values) => { // values contains: amount id, quantity and type id
@@ -162,20 +126,8 @@ const updateAmountByIdQuantityAndAmountTypeInDB = async (values) => { // values 
         amountType:values.amountType
     }
     await Amount.update(newValues,{where})
-    const amount = await Amount.findAll({
-        where, 
-        attributes: { exclude: ['amountType'] },
-        raw:true,
-        include: { 
-            all: true,
-            attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
-        }
-    })
-    if(amount) {
-        const renamedAmount = renameAmounts(amount[0])
-        return renamedAmount
-    }
-    else return null
+    const renamedAmount = await getAmountByIdFromDB(values.id)
+    return renamedAmount
 }
 
 module.exports = {

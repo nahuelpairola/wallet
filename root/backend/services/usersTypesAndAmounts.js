@@ -15,6 +15,6 @@ const isAnAmountUsingThisTypeId = async (typeId) => {
 }
 
 module.exports = {
-    isAnAmountUsingThisTypeId,
     isUserAnAdmin,
+    isAnAmountUsingThisTypeId,
 }
