@@ -27,9 +27,9 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
     error: error,
     statusCode: error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
   }
-  
-  if(error instanceof TypeError) {
-    customError.message = 'INTERNAL SERVER ERROR'
+  // changing msg or status codes depends of condition
+  if(error instanceof TypeError || error.message === NOT_ENOUGH_DATA || error instanceof BaseError) {
+    error.message = 'PLEASE CONTACT WITH SUPPORT, INTERNAL SERVER ERROR'
   }
   if(error instanceof JsonWebTokenError) {
     customError.statusCode = StatusCodes.UNAUTHORIZED
@@ -38,9 +38,6 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
   if(error instanceof TokenExpiredError) {
     customError.statusCode = StatusCodes.UNAUTHORIZED
     customError.msg = error.message.toUpperCase()+TOKEN_EXPIRED
-  }
-  if(error instanceof BaseError) {
-    customError.message = 'INTERNAL SERVER ERROR'
   }
   if(error instanceof UserCreateError && error.message === USER_ALREADY_CREATED) {
     error.statusCode = StatusCodes.CONFLICT
@@ -86,8 +83,6 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
     error.statusCode= StatusCodes.NOT_FOUND
     customError.statusCode = error.statusCode
   }
-  if(error.message === NOT_ENOUGH_DATA) error.message = 'PLEASE CONTACT WITH SUPPORT, INTERNAL SERVER ERROR'
-
 
   console.log("Error Handling Middleware called")
   console.log('Path: ', req.path)
