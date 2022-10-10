@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 
 const validator = require('express-joi-validation').createValidator({})
-const {AmountBody,AmountId} = require('../validators/models/amount')
+const {AmountBody,AmountId, AmountQuery} = require('../validators/schemas/amount')
 
 const {
     getAmounts,
@@ -12,7 +12,7 @@ const {
 } = require('../controllers/amount')
 
 router.route('/')
-    .get(getAmounts)
+    .get(validator.query(AmountQuery),getAmounts)
     .post(validator.body(AmountBody),createAmount)
 
 router.route('/:id')

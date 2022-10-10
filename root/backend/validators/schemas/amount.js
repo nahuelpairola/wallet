@@ -8,4 +8,11 @@ const AmountBody = Joi.object({
 
 const AmountId = Joi.number().integer().options({convert:true}).required()
 
-module.exports = {AmountBody,AmountId}
+const AmountQuery = Joi.object({
+  movement: Joi.string().lowercase().valid('input','output'),
+  type: Joi.string().lowercase(),
+  quantity: Joi.string().lowercase(),
+  created_at: Joi.string()
+})
+
+module.exports = {AmountBody,AmountId,AmountQuery}
