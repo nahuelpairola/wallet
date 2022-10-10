@@ -10,7 +10,7 @@ const authentication = async (req,res,next) => {
     token = auth.split(' ')[1]
     const user = await getUserByToken(token)
     if(!user) throw new UnauthenticatedError(ACCESS_UNAUTHORIZED)
-    req.user = {id:user.id,email:user.email,role:user.role}// create user inside req object
+    req.user = {id:Number(user.id),email:user.email,role:user.role}// create user inside req object
     next()
 }
 

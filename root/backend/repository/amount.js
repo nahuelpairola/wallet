@@ -54,8 +54,11 @@ const getAmountByIdFromDB = async (amountId) => {
             attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
         }
     })
-    const renamedAmount = renameSingleAmount(amount)
-    return renamedAmount
+    if(!amount) return null
+    else {
+        const renamedAmount = renameSingleAmount(amount)
+        return renamedAmount
+    }
 }
 
 const getAmountsByFilterFromDB = async (filter) => { // filter: creator id and type id

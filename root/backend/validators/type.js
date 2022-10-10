@@ -5,6 +5,8 @@ const NewType = Joi.object({
   name: Joi.string().min(3).max(15).required(),
 }).required()
 
-const TypeId = Joi.number().required()
+const TypeId = Joi.object({
+  id: Joi.number().required()
+})
 
 module.exports = {NewType,TypeId} 

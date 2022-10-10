@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 
 const validator = require('express-joi-validation').createValidator({})
-const {AmountBody,AmountId, AmountQuery} = require('../validators/schemas/amount')
+const {AmountBody,AmountId, AmountQuery} = require('../validators/amount')
 
 const {
     getAmounts,

@@ -13,7 +13,6 @@ const {
 
 const createType = async (req, res) => {
     const {movement: movement, name: name} = req.body
-    if(!movement || !name) throw new BadRequestError(PROVIDE_ALL_DATA)
     const creator = req.user
     const typeToCreate = {
         name:name,
@@ -34,7 +33,6 @@ const getTypes = async (req,res) => {
 
 const deleteType = async (req,res) => {
     const {id:typeIdToDelete} = req.params
-    if(!typeIdToDelete) throw new BadRequestError(PROVIDE_ALL_DATA)
     const user = req.user
     const deletedType = await deleteTypeByIdAndCreator({typeId:typeIdToDelete,creator:user})
     res.status(StatusCodes.ACCEPTED).json({ User:user.email, DeletedType: deletedType })
@@ -43,9 +41,6 @@ const deleteType = async (req,res) => {
 const updateType = async (req, res) => {
     const { id: idOfTypeToUpdate } = req.params
     const { name: nameOfTypeToUpdate, movement: movementOfTypeToUpdate } = req.body
-    if( !idOfTypeToUpdate || 
-        !nameOfTypeToUpdate || 
-        !movementOfTypeToUpdate) throw new BadRequestError(PROVIDE_ALL_DATA)
     const user = req.user
     const updatedType = await updateTypeByIdAndUser({
         id:idOfTypeToUpdate,

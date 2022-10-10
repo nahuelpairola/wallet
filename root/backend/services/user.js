@@ -141,7 +141,7 @@ const deleteUserByIdAndUser = async ({id: userId, user:{id,email}}) => {
     if(userId !== id) throw new UserDeleteError(USER_DELETING_UNAUTHORIZED)
     const userMatched = await getUserByEmailFromDB(email)
     if(!userMatched) throw new UserDeleteError(USER_NOT_FOUND)
-    if(userMatched.id !== userId) throw new UserDeleteError(USER_DELETING_UNAUTHORIZED)
+    if(Number(userMatched.id) !== userId) throw new UserDeleteError(USER_DELETING_UNAUTHORIZED)
     // check user role
     if(isUserAnAdmin(userMatched)) { 
         // user is an admin, just delete user

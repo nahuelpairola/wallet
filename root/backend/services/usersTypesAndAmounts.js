@@ -1,3 +1,4 @@
+// file to avoid circular dependencies
 
 const {getAtLeastOneAmountUsingThisTypeIdInDB} = require('../repository/amount')
 

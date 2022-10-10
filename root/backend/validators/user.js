@@ -8,7 +8,9 @@ const UserBody = Joi.object({
   role: Joi.string().valid('user','admin').default('user')
 }).required()
 
-const UserId = Joi.number().integer().options({convert:true}).required()
+const UserId = Joi.object({
+  id: Joi.number().integer().options({convert:true}).required()
+})
 
 const UserLogin = Joi.object({
   email: Joi.string().email().trim().lowercase(),

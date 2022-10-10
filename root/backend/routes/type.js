@@ -3,7 +3,7 @@ const router = express.Router()
 
 // validators
 const validator = require('express-joi-validation').createValidator({})
-const {NewType,TypeId} = require('../validators/schemas/type')
+const {NewType,TypeId} = require('../validators/type')
 
 const {
     createType,
