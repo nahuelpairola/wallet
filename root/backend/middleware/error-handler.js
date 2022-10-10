@@ -29,7 +29,8 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
   }
   // changing msg or status codes depends of condition
   if(error instanceof TypeError || error.message === NOT_ENOUGH_DATA || error instanceof BaseError) {
-    error.message = 'PLEASE CONTACT WITH SUPPORT, INTERNAL SERVER ERROR'
+    error.message = 'INTERNAL SERVER ERROR, PLEASE CONTACT WITH SUPPORT'
+    customError.msg = error.message
   }
   if(error instanceof JsonWebTokenError) {
     customError.statusCode = StatusCodes.UNAUTHORIZED

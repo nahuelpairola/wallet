@@ -11,8 +11,8 @@ const renameAmounts = (amounts) => { // rename elements in amounts, a single one
 }
 
 const renameSingleAmount = (amount) => {    
+    delete amount['user.id']
     if(amount['user.id']){
-        delete amount['user.id']
     }
     if(amount['type.id']){
         amount.typeId = amount['type.id']
@@ -87,8 +87,11 @@ const getAtLeastOneAmountUsingThisTypeIdInDB = async (typeId) => { // type id
             attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
         }
     })
-    const renamedAmount = renameSingleAmount(singleAmount)
-    return renamedAmount
+    if(!singleAmount) return null
+    else {
+        const renamedAmount = renameSingleAmount(singleAmount)
+        return renamedAmount
+    }
 }
 
 const getAmountsByCreatorIdFromDB = async (creatorId) => {

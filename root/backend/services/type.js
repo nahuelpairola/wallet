@@ -8,7 +8,7 @@ const {
     TYPE_ALREADY_CREATED,
     TYPE_DELETE_UNAUTHORIZED,
 } = require('../errors/error-msg-list')
-const { ServiceError } = require('../errors')
+const { ServiceError, NotFoundError } = require('../errors')
 const {
     TypeDeleteError,
     TypeCreateError, 
@@ -67,7 +67,7 @@ const createNewType = async (newType) => {
         movement:typeToCreate.movement,
         name:typeToCreate.name,
         default:true})
-    if (!typeByDefaultMatched) { // if theres not default type matched
+    if (typeByDefaultMatched.length===0) { // if theres not default type matched
         if (newType.default) {
             const createdDefaultType = await createTypeInDB(typeToCreate) // if the type to create is a default one, create it
             return (deleteCreatorOfEachType(createdDefaultType)) // returns new type by default
@@ -79,7 +79,7 @@ const createNewType = async (newType) => {
                 creator: typeToCreate.creator,
                 default: false
             })
-            if (!customTypeMatched) { // if not exists, create a new custom type
+            if (customTypeMatched.length===0) { // if not exists, create a new custom type
                 const storedCustomType = await createTypeInDB(typeToCreate)
                 return (deleteCreatorOfEachType(storedCustomType))
             } else throw new TypeCreateError(TYPE_ALREADY_CREATED)
@@ -171,7 +171,7 @@ const deleteTypeByIdAndCreator = async ({typeId:typeIdToDelete,creator:creator})
     if(!typeIdToDelete || !creator.id || !creator.role) throw new TypeDeleteError(NOT_ENOUGH_DATA)
 
     const typeMatched = await getTypeById(typeIdToDelete)
-    if(!typeMatched) return null // type not founded
+    if(!typeMatched) throw new NotFoundError(TYPE_NOT_FOUND)
     if(await isTypeIdUsedInAmounts(typeIdToDelete)) throw new TypeDeleteError(TYPE_USED_IN_AMOUNT)
     
     if(isUserAnAdmin(creator) && typeMatched.default) { // if the type is default and the user is admin

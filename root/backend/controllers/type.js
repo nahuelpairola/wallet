@@ -37,8 +37,7 @@ const deleteType = async (req,res) => {
     if(!typeIdToDelete) throw new BadRequestError(PROVIDE_ALL_DATA)
     const user = req.user
     const deletedType = await deleteTypeByIdAndCreator({typeId:typeIdToDelete,creator:user})
-    if(!deletedType) throw new NotFoundError(TYPE_NOT_FOUND)
-    else res.status(StatusCodes.ACCEPTED).json({ User:user.email, DeletedType: deletedType })
+    res.status(StatusCodes.ACCEPTED).json({ User:user.email, DeletedType: deletedType })
 }
 
 const updateType = async (req, res) => {
