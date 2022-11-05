@@ -3,7 +3,7 @@ const { JsonWebTokenError , TokenExpiredError } = require('jsonwebtoken')
 const {BaseError} = require('sequelize')
 const {UserCreateError, UserSearchError, UserUpdateError, UserDeleteError} = require('../errors/user-errors')
 const { TypeDeleteError, TypeCreateError } = require('../errors/type-errors')
-const { AmountDeleteError, AmountUpdateError } = require('../errors/amount-errors')
+const { AmountDeleteError, AmountUpdateError, AmountCreateError } = require('../errors/amount-errors')
 const {
   USER_ALREADY_CREATED, 
   PASSWORD_INCORRECT, 
@@ -74,6 +74,10 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
   }
   if(error instanceof TypeDeleteError && error.message === TYPE_USED_IN_AMOUNT) {
     error.statusCode= StatusCodes.CONFLICT
+    customError.statusCode = error.statusCode
+  }
+  if(error instanceof AmountCreateError && error.message === TYPE_NOT_FOUND) {
+    error.statusCode= StatusCodes.NOT_FOUND
     customError.statusCode = error.statusCode
   }
   if(error instanceof AmountUpdateError && error.message === TYPE_NOT_FOUND) {

@@ -1,11 +1,14 @@
 require('dotenv').config()
-
 const express = require('express')
+const helmet = require('helmet')
+
 require('express-async-errors')
 
 const app = express()
 
 app.use(express.json())
+app.use(helmet())
+app.disable('x-powered-by')
 
 // db
 const {connectDB} = require('./db/connect')

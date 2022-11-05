@@ -5,11 +5,6 @@ const { getAmountsByCreatorIdWithFilteringOption,
         deleteAmountByIdAndCreatorId,
         updateAmountByIdCreatorIdAndNewValues,
     } = require('../services/amount')
-
-const {isMovement} = require('../services/type')
-
-const {BadRequestError} = require('../errors')
-const { PROVIDE_ALL_DATA, PROVIDE_CORRECT_DATA } = require('../errors/error-msg-list')
     
 const createAmount = async (req,res) => {
     const {
