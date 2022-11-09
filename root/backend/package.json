@@ -1,8 +1,9 @@
 {
   "name": "wallet-api",
   "version": "1.0.0",
-  "description": "",
+  "description": "personal finance manager",
   "main": "app.js",
+  "private": "false",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.0.1",
@@ -21,8 +22,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "start": "nodemon app.js"
+    "start": "node app.js"
   },
-  "author": "",
+  "author": "nahuelpairola@gmail.com",
   "license": "ISC"
 }
