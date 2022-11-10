@@ -1,5 +1,5 @@
 {
-  "name": "wallet-api",
+  "name": "wallet",
   "version": "1.0.0",
   "description": "personal finance manager",
   "main": "app.js",
@@ -18,12 +18,16 @@
     "nodemon": "^2.0.16",
     "pg": "^8.7.3",
     "routes": "^2.1.0",
-    "sequelize": "^6.21.3"
+    "sequelize": "^6.21.3",
+    "yarn": "^1.22.19"
   },
   "devDependencies": {},
   "scripts": {
     "start": "node app.js"
   },
   "author": "nahuelpairola@gmail.com",
-  "license": "ISC"
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=14 <15"
+  }
 }
