@@ -18,12 +18,12 @@
     "nodemon": "^2.0.16",
     "pg": "^8.7.3",
     "routes": "^2.1.0",
-    "sequelize": "^6.21.3",
-    "yarn": "^1.22.19"
+    "sequelize": "^6.21.3"
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "build": "npm run build"
   },
   "author": "nahuelpairola@gmail.com",
   "license": "UNLICENSED",
