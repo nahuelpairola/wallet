@@ -1,7 +1,7 @@
 
 const {Sequelize} = require('sequelize')
 
-const sequelize = new Sequelize(process.env.PSQL_URI)
+const sequelize = new Sequelize(process.env.DATABASE_URL)
 
 const connectDB = async () => {
     try{

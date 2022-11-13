@@ -1,2 +1,10 @@
 node_modules/
 .env
+
+db/connection-data.md
+
+.dockerignore
+Dockerfile
+fly.toml
+wireguard.conf
+

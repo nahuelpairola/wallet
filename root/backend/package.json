@@ -6,28 +6,31 @@
   "private": "false",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
     "dotenv": "^16.0.1",
     "express": "^4.18.1",
     "express-async-errors": "^3.1.1",
     "express-joi-validation": "^5.0.1",
+    "express-rate-limit": "^6.6.0",
     "helmet": "^6.0.0",
     "http-status-codes": "^2.2.0",
     "joi": "^17.6.2",
     "json": "^11.0.0",
     "jsonwebtoken": "^8.5.1",
     "nodemon": "^2.0.16",
+    "npm-build": "0.0.1",
     "pg": "^8.7.3",
     "routes": "^2.1.0",
-    "sequelize": "^6.21.3"
+    "sequelize": "^6.21.3",
+    "xss-clean": "^0.1.1"
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node app.js",
-    "build": "npm run build"
+    "start": "nodemon app.js"
   },
   "author": "nahuelpairola@gmail.com",
   "license": "UNLICENSED",
   "engines": {
-    "node": ">=14 <15"
+    "node": "v14.15.5"
   }
 }
