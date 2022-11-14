@@ -17,14 +17,15 @@
     "joi": "^17.6.2",
     "json": "^11.0.0",
     "jsonwebtoken": "^8.5.1",
-    "nodemon": "^2.0.16",
     "npm-build": "0.0.1",
     "pg": "^8.7.3",
     "routes": "^2.1.0",
     "sequelize": "^6.21.3",
     "xss-clean": "^0.1.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "nodemon": "^2.0.16"
+  },
   "scripts": {
     "start": "nodemon app.js"
   },
