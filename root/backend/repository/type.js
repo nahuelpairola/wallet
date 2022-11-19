@@ -11,7 +11,6 @@ const createTypeInDB = async (newType) => { // create type
         typeof newType.default === 'undefined') throw new TypeCreateError(NOT_ENOUGH_DATA)
     const typeCreated = await Type.create(newType)
     const typeCreatedRaw = typeCreated.dataValues
-    delete typeCreatedRaw.id
     return typeCreatedRaw
 }
 
@@ -57,7 +56,7 @@ const deleteTypeByIdInDB = async (typeId) => {
     if(!typeToDelete) return null
     const where = {id:typeId}
     await Type.destroy({where})
-    delete typeToDelete.id
+    // delete typeToDelete.id
     return typeToDelete
 }
 

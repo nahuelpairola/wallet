@@ -85,6 +85,10 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
     error.statusCode= StatusCodes.NOT_FOUND
     customError.statusCode = error.statusCode
   }
+  if(error instanceof AmountUpdateError && error.message === AMOUNT_NOT_FOUND) {
+    error.statusCode= StatusCodes.NOT_FOUND
+    customError.statusCode = error.statusCode
+  }
   if(error instanceof AmountDeleteError && error.message === AMOUNT_NOT_FOUND) {
     error.statusCode= StatusCodes.NOT_FOUND
     customError.statusCode = error.statusCode
