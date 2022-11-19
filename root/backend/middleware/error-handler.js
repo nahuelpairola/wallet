@@ -17,7 +17,8 @@ const {
   TYPE_ALREADY_CREATED, 
   TYPE_DELETE_UNAUTHORIZED,
   TYPE_NOT_FOUND,
-  NOT_ENOUGH_DATA
+  NOT_ENOUGH_DATA,
+  ACCESS_UNAUTHORIZED
 } = require('../errors/error-msg-list')
  
 const errorHandlerMiddleware = async (error, req, res, next) => {
@@ -87,6 +88,10 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
   if(error instanceof AmountDeleteError && error.message === AMOUNT_NOT_FOUND) {
     error.statusCode= StatusCodes.NOT_FOUND
     customError.statusCode = error.statusCode
+  }
+  if(error instanceof AmountUpdateError && error.message === ACCESS_UNAUTHORIZED) {
+    error.statusCode = StatusCodes.UNAUTHORIZED
+    customError.statusCode = error.statusCode 
   }
 
   console.log("Error Handling Middleware called")

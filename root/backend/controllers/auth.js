@@ -1,5 +1,5 @@
 
-const { createUser, getTokenByEmailAndPassword } = require('../services/user')
+const { createUser, getTokenAndUserIdByEmailAndPassword } = require('../services/user')
 const {StatusCodes} = require('http-status-codes')
 const {BadRequestError , UnauthenticatedError} = require('../errors')
 const { TOKEN_UNAUTHORIZED, PROVIDE_ALL_DATA } = require('../errors/error-msg-list')
@@ -7,9 +7,9 @@ const { TOKEN_UNAUTHORIZED, PROVIDE_ALL_DATA } = require('../errors/error-msg-li
 const login = async (req, res) => {
     const {email, password} = req.body
     if(!email || !password) throw new BadRequestError(PROVIDE_ALL_DATA)
-    const token = await getTokenByEmailAndPassword({email:email, password:password})
+    const {userId,token} = await getTokenAndUserIdByEmailAndPassword({email:email, password:password})
     if(!token) throw new UnauthenticatedError(TOKEN_UNAUTHORIZED)
-    else res.status(StatusCodes.ACCEPTED).json({User:email, Token:token})
+    else res.status(StatusCodes.ACCEPTED).json({user:{id:userId,email:email}, token:token, msg: "LOGIN SUCCESSFUL"})
 }
 
 const registration = async (req, res) => {
@@ -17,8 +17,8 @@ const registration = async (req, res) => {
     if(!first_name || !last_name || !email || !password) throw new BadRequestError(PROVIDE_ALL_DATA)
     const user = {first_name, last_name, email, password}
     if(role) user.role = role
-    const newUser = await createUser(user)
-    res.status(StatusCodes.CREATED).json({User:newUser.email,Token:newUser.token})
+    const {user:userCreated,token:token} = await createUser(user)
+    res.status(StatusCodes.CREATED).json({user:{id:userCreated.id,email:userCreated.email},token:token, msg: "REGISTRATION SUCCESSFUL"})
 }
 
 module.exports = {login, registration}

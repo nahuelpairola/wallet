@@ -1,7 +1,7 @@
 const {StatusCodes} = require('http-status-codes')
-const {BadRequestError, NotFoundError} = require('../errors')
+const {NotFoundError} = require('../errors')
 
-const { PROVIDE_ALL_DATA, TYPE_NOT_FOUND } = require('../errors/error-msg-list')
+const { TYPE_NOT_FOUND } = require('../errors/error-msg-list')
 
 const {
     createNewType,
@@ -21,21 +21,21 @@ const createType = async (req, res) => {
         default: assignDefaultTypeByCreatorRole(creator.role)
     }
     const createdType = await createNewType(typeToCreate)
-    res.status(StatusCodes.CREATED).json({User: creator.email, CreatedType: createdType})
+    res.status(StatusCodes.CREATED).json({user: {id:creator.id,email:creator.email}, createdType: createdType, msg: "TYPE CREATED SUCCESSFUL"})
 }
 
 const getTypes = async (req,res) => {
     const user = req.user
     const types = await getTypesByUserIdAndRole({id:user.id, role:user.role})
     if(!types) throw new NotFoundError(TYPE_NOT_FOUND)
-    else res.status(StatusCodes.OK).json({ nHits: types.length, User: user.email, Types: types })
+    else res.status(StatusCodes.OK).json({ user: {id:user.id,email:user.email}, nHits: types.length, types: types , msg: "TYPES SEARCHING SUCCESSFUL"})
 }
 
 const deleteType = async (req,res) => {
     const {id:typeIdToDelete} = req.params
     const user = req.user
     const deletedType = await deleteTypeByIdAndCreator({typeId:typeIdToDelete,creator:user})
-    res.status(StatusCodes.ACCEPTED).json({ User:user.email, DeletedType: deletedType })
+    res.status(StatusCodes.ACCEPTED).json({ user: {id: user.id, email: user.email}, deletedType: deletedType, msg: "TYPE DELETED SUCCESSFUL"})
 }
 
 const updateType = async (req, res) => {
@@ -48,7 +48,7 @@ const updateType = async (req, res) => {
         movement:movementOfTypeToUpdate,
         user:user
     })
-    res.status(StatusCodes.OK).json({ User: user.email, UpdatedType: updatedType })
+    res.status(StatusCodes.OK).json({ user: {id: user.id, email: user.email}, updatedType: updatedType, msg: "TYPE UPDATED SUCCESSFUL"})
 }
 
 module.exports = {

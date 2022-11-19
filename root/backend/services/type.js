@@ -177,10 +177,10 @@ const deleteTypeByIdAndCreator = async ({typeId:typeIdToDelete,creator:creator})
     if(isUserAnAdmin(creator) && typeMatched.default) { // if the type is default and the user is admin
         const deletedDefaultType = await deleteTypeById(typeIdToDelete) // check if the type is used in amounts
         return deleteCreatorOfEachType(deletedDefaultType)
-    } else if(!isUserAnAdmin(creator) && typeMatched.creator === creator.id) { // if user is a normal user and is the creator of the type, delete it
+    } else if(!isUserAnAdmin(creator) && Number(typeMatched.creator) === creator.id) { // if user is a normal user and is the creator of the type, delete it
         const deletedCustomType = await deleteTypeById(typeIdToDelete)
         return deleteCreatorOfEachType(deletedCustomType)
-    } else if (!isUserAnAdmin(creator) && typeMatched.creator !== creator.id) { // if user is a normal user and the type is not of that creator
+    } else if (!isUserAnAdmin(creator) && Number(typeMatched.creator) !== creator.id) { // if user is a normal user and the type is not of that creator
         throw new TypeDeleteError(TYPE_DELETE_UNAUTHORIZED)
     } else {
         throw new TypeDeleteError(TYPE_DELETING_ERROR)
@@ -215,14 +215,14 @@ const updateTypeByIdAndUser = async ({id:typeIdToUpdate,name:newName,movement:ne
     if( !typeIdToUpdate || !newName || !newMovement || !user.id || !user.role) throw new TypeUpdateError(NOT_ENOUGH_DATA)
     // check if there is a default type with those new values
     const matchedDefaultType = await getTypesByFilter({default:true, name: newName, movement: newMovement})
-    if(matchedDefaultType) return deleteCreatorOfEachType(matchedDefaultType)
+    if(matchedDefaultType.lenght<1) return deleteCreatorOfEachType(matchedDefaultType)
     // get the type to update from id
     const matchedType = await getTypeById(typeIdToUpdate)
     if(!matchedType) throw new TypeUpdateError(TYPE_NOT_FOUND)
     if(matchedType.default && isUserAnAdmin(user)) { // check if type creator is admin and the type is a default one
         const updatedDefaultType = await updateMovementAndNameInTypeById({id:typeIdToUpdate,name:newName,movement:newMovement})
         return deleteCreatorOfEachType(updatedDefaultType)
-    } else if(!matchedType.default && matchedType.creator === user.id) { // check if the type is not a default and the creator 
+    } else if(!matchedType.default && Number(matchedType.creator) === user.id) { // check if the type is not a default and the creator 
         const updatedCustomType = await updateMovementAndNameInTypeById({id:typeIdToUpdate,name:newName,movement:newMovement})
         return deleteCreatorOfEachType(updatedCustomType)
     }

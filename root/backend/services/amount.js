@@ -147,7 +147,7 @@ const deleteAllAmountsOfCreatorByCreatorId = async (creatorId) => {
         }))
         return amountsDeleted
     } else {
-        const amountDeleted = await deleteAmountByIdInDB(amountsOfCreator.id)
+        const amountDeleted = await deleteAmountByIdInDB(amountsOfCreator[0].id)
         return amountDeleted
     }
 }
@@ -156,7 +156,7 @@ const deleteAmountByIdAndCreatorId = async ({amountId,creatorId}) => {
     if(!amountId || !creatorId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
     const amountToDelete = await getAmountById(amountId)
     if(!amountToDelete) throw new AmountDeleteError(AMOUNT_NOT_FOUND)
-    if(amountToDelete.creator !== creatorId) throw new AmountDeleteError(ACCESS_UNAUTHORIZED)   
+    if(Number(amountToDelete.creator) !== creatorId) throw new AmountDeleteError(ACCESS_UNAUTHORIZED)   
     const amountDeleted = await deleteAmountByIdInDB(amountId)
     return amountDeleted
 }
@@ -172,7 +172,7 @@ const updateAmountByIdCreatorIdAndNewValues = async ({amountId, creatorId, newVa
     if( !amountId || !creatorId || !quantity || !movement || !type) throw new ServiceError(NOT_ENOUGH_DATA)
     const amountMatched = await getAmountById(amountId)
     if(!amountMatched) throw new AmountUpdateError(AMOUNT_NOT_FOUND)
-    if(amountMatched.creator !== creatorId) throw new AmountUpdateError(ACCESS_UNAUTHORIZED)
+    if(Number(amountMatched.creator) !== creatorId) throw new AmountUpdateError(ACCESS_UNAUTHORIZED)
     // check if the type (movement and name) is a default one OR is a custom one
     const newType = await getTypesByMovementNameAndUserId({movement, name: type, userId:creatorId})
     if(!newType) throw new AmountUpdateError(TYPE_NOT_FOUND)

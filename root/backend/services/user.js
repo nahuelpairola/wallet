@@ -28,6 +28,7 @@ const { PASSWORD_INCORRECT,
         USER_UPDATING_ERROR,
         USER_UPDATING_UNAUTHORIZED,
         USER_DELETING_UNAUTHORIZED,
+        USER_EMAIL_NOT_AVAILABLE,
         } = require('../errors/error-msg-list')
 
 const {
@@ -52,9 +53,9 @@ const generateTokenByEmail = (userEmail) => {
 }
 
 // check password, return token
-const getTokenByEmailAndPassword = async (emailAndPassword) => {
+const getTokenAndUserIdByEmailAndPassword = async (emailAndPassword) => {
     // check if emails user exists
-    if(!emailAndPassword) throw new UserSearchError(NOT_ENOUGH_DATAS)
+    if(!emailAndPassword) throw new UserSearchError(NOT_ENOUGH_DATA)
     const userMatched = await getUserByEmailFromDB(emailAndPassword.email)
     if(!userMatched) throw new UserNotFoundError(USER_NOT_FOUND)
     else {
@@ -65,7 +66,7 @@ const getTokenByEmailAndPassword = async (emailAndPassword) => {
         const token = jwt.sign({email: userMatched.email},
                                 process.env.JWT_SECRET,
                                 {expiresIn:process.env.JWT_LIFETIME})
-        return token // return token
+        return {userId:userMatched.id,token:token} // return user id and access token
     }
 }
 
@@ -101,11 +102,11 @@ const createUser = async (user) => {
         // create token, payload = email
         const token = generateTokenByEmail(userCreated.email)
 
-        return ( { email: user.email, token: token } )
+        return ( { user:userCreated, token:token } )
     } else throw new UserCreateError(USER_ALREADY_CREATED)
 }
 
-const updateUserByIdUserAndNewValuesGetEmailAndNewToken = async ({id: userId, user , newValues}) => {
+const updateUserByIdUserAndNewValuesGetUserAndNewToken = async ({id: userId, user , newValues}) => {
     if( !userId ||
         !user.id ||
         !user.email ||
@@ -117,7 +118,7 @@ const updateUserByIdUserAndNewValuesGetEmailAndNewToken = async ({id: userId, us
     if(userId !== user.id) throw new UserUpdateError(USER_UPDATING_UNAUTHORIZED) // check user acces vs user id to update
     
     const isAnyUserWithNewEmail = await getUserByEmailFromDB(newValues.email) //check if the email is available
-    if(isAnyUserWithNewEmail && isAnyUserWithNewEmail.id !== userId) throw new UserUpdateError(USER_EMAIL_NOT_AVAILABLE)
+    if(isAnyUserWithNewEmail && Number(isAnyUserWithNewEmail.id) !== userId) throw new UserUpdateError(USER_EMAIL_NOT_AVAILABLE)
 
     newValues.password = await generatePassword(newValues.password) // cript new passwrod
 
@@ -132,7 +133,7 @@ const updateUserByIdUserAndNewValuesGetEmailAndNewToken = async ({id: userId, us
     if(!updatedUser) throw new UserUpdateError(USER_UPDATING_ERROR)
     else {
         const token = generateTokenByEmail(updatedUser.email)
-        return {email:updatedUser.email,token:token}
+        return {user:updatedUser,token:token}
     }
 }
 
@@ -161,8 +162,8 @@ const deleteUserByIdAndUser = async ({id: userId, user:{id,email}}) => {
 
 module.exports = {
     createUser,
-    getTokenByEmailAndPassword,
+    getTokenAndUserIdByEmailAndPassword,
     getUserByToken,
-    updateUserByIdUserAndNewValuesGetEmailAndNewToken,
+    updateUserByIdUserAndNewValuesGetUserAndNewToken,
     deleteUserByIdAndUser,
 }
