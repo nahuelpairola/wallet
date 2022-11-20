@@ -28,7 +28,7 @@ const getTypes = async (req,res) => {
     const user = req.user
     const types = await getTypesByUserIdAndRole({id:user.id, role:user.role})
     if(!types) throw new NotFoundError(TYPE_NOT_FOUND)
-    else res.status(StatusCodes.OK).json({ user: {id:user.id,email:user.email}, nHits: types.length, types: types , msg: "TYPES SEARCHING SUCCESSFUL"})
+    else res.status(StatusCodes.OK).json({ user: {id:user.id,email:user.email}, nTypes: types.length, types: types , msg: "TYPES SEARCHING SUCCESSFUL"})
 }
 
 const deleteType = async (req,res) => {
