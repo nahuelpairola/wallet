@@ -29,7 +29,8 @@ const renameSingleAmount = (amount) => {
     if(typeof amount['type.default'] !== 'undefined'){
         amount.default = amount['type.default']
         delete amount['type.default']
-    }        
+    }
+    amount.quantity = Number(amount.quantity)        
     return amount
 }
 

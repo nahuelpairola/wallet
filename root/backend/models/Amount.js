@@ -2,12 +2,17 @@ const { DataTypes } = require('sequelize')
 const {sequelize} = require('../db/connect')
 
 const Amount = sequelize.define('amounts', {
+        id:{
+            type: DataTypes.INTEGER,
+            autoIncrement: true,
+            primaryKey: true
+        },
         quantity:{
             type: DataTypes.NUMBER(19,2).UNSIGNED,
             allowNull:false
         },
         amountType:{
-            type:DataTypes.BIGINT,
+            type:DataTypes.INTEGER,
             allowNull:false,
             references: {
                 model: 'types',
@@ -19,7 +24,7 @@ const Amount = sequelize.define('amounts', {
             allowNull:false
         },
         creator:{
-            type:DataTypes.BIGINT,
+            type:DataTypes.INTEGER,
             allowNull:false,
             references: {
                 model: 'users',

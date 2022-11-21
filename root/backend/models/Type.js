@@ -2,6 +2,11 @@ const { DataTypes } = require('sequelize')
 const {sequelize} = require('../db/connect')
 
 const Type = sequelize.define('types', {
+        id:{
+            type: DataTypes.INTEGER,
+            autoIncrement: true,
+            primaryKey: true
+        },
         movement:{
             type: DataTypes.ENUM('input','output'),
             allNull:false
@@ -15,7 +20,7 @@ const Type = sequelize.define('types', {
             allowNull:false
         },
         creator:{
-            type: DataTypes.BIGINT,
+            type: DataTypes.INTEGER,
             allowNull: false,
             references: {
                 model: 'users',
