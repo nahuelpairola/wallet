@@ -20,7 +20,7 @@ const createAmount = async (req,res) => {
         type: type,
         creatorId: creator.id
     })
-    res.status(StatusCodes.CREATED).json({ 
+    res.status(StatusCodes.CREATED).json({
         user:{id:creator.id,email:creator.email},
         accountBalance: accountBalance,
         amountCreated: amount,
