@@ -114,7 +114,8 @@ CREATE TABLE public.users (
     email character varying(40) NOT NULL,
     password character varying(60) NOT NULL,
     created_at date NOT NULL,
-    role public.role NOT NULL
+    role public.role NOT NULL,
+    "accountBalance" numeric(19,2) NOT NULL
 );
 
 
