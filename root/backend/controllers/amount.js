@@ -1,9 +1,9 @@
 const {StatusCodes} = require('http-status-codes')
 
-const { getAmountsByCreatorIdWithFilteringOption,
-        createAmountByQuantityMovementTypeAndCreatorId,
-        deleteAmountByIdAndCreatorId,
-        updateAmountByIdCreatorIdAndNewValues,
+const { getAmountsByCreatorIdWithFilteringOptionReturnAmountsAndAccountBalance,
+        createAmountByQuantityMovementTypeAndCreatorIdReturnAmountCreatedAndAccountBalance,
+        deleteAmountByIdAndCreatorIdReturnAmountAndAccountBalance,
+        updateAmountByIdCreatorIdAndNewValuesReturnAmountAndAccountBalance,
     } = require('../services/amount')
     
 const createAmount = async (req,res) => {
@@ -14,13 +14,18 @@ const createAmount = async (req,res) => {
     } = req.body
     const creator = req.user
 
-    const amountCreated = await createAmountByQuantityMovementTypeAndCreatorId({
+    const {amount,accountBalance} = await createAmountByQuantityMovementTypeAndCreatorIdReturnAmountCreatedAndAccountBalance({
         quantity: quantity,
         movement: movement,
         type: type,
         creatorId: creator.id
     })
-    res.status(StatusCodes.CREATED).json({ user:{id:creator.id,email:creator.email}, amountCreated: amountCreated, msg: "AMOUNT CREATED SUCCESSFUL"})
+    res.status(StatusCodes.CREATED).json({ 
+        user:{id:creator.id,email:creator.email},
+        accountBalance: accountBalance,
+        amountCreated: amount,
+        msg: "AMOUNT CREATED SUCCESSFUL"
+    })
 }
 
 const getAmounts = async (req,res) => {
@@ -36,27 +41,44 @@ const getAmounts = async (req,res) => {
     if(movement) filteringOption.movement = movement
     if(type) filteringOption.type = type
     if(created_at) filteringOption.created_at = created_at
-    const amounts = await getAmountsByCreatorIdWithFilteringOption({creatorId:creator.id,filteringOption})
-    res.status(StatusCodes.OK).json({user: {id:creator.id,email:creator.email}, nAmounts: amounts.length, amounts: amounts, msg: "AMOUNTS SEARCHING SUCCESSFUL"})
+    const {amounts, accountBalance} = await getAmountsByCreatorIdWithFilteringOptionReturnAmountsAndAccountBalance({
+        creatorId:creator.id,
+        filteringOption
+    })
+    res.status(StatusCodes.OK).json({
+        user:{id:creator.id,email:creator.email},
+        accountBalance:accountBalance,
+        nAmounts: amounts.length,
+        amounts: amounts,
+        msg: "AMOUNTS SEARCHING SUCCESSFUL"})
 }
 
 const deleteAmount = async (req,res) => {
     const {id:amountId} = req.params
     const creator = req.user
-    const amountDeleted = await deleteAmountByIdAndCreatorId({amountId, creatorId:creator.id})
-   res.status(StatusCodes.OK).json({ user: {id:creator.id,email:creator.email}, amountDeleted: amountDeleted, msg: "AMOUNT DELETED SUCCESSFUL"})
+    const {amount,accountBalance} = await deleteAmountByIdAndCreatorIdReturnAmountAndAccountBalance({amountId, creatorId:creator.id})
+    res.status(StatusCodes.OK).json({ 
+        user: {id:creator.id,email:creator.email},
+        accountBalance: accountBalance,
+        amountDeleted: amount,
+        msg: "AMOUNT DELETED SUCCESSFUL"
+    })
 }
 
 const updateAmount = async (req,res) => {
     const {id:amountId} = req.params
     const {quantity:quantity, movement:movement, type:type} = req.body
     const creator = req.user
-    const amountUpdated = await updateAmountByIdCreatorIdAndNewValues({
+    const {amount, accountBalance} = await updateAmountByIdCreatorIdAndNewValuesReturnAmountAndAccountBalance({
         amountId: amountId,
         creatorId: creator.id,
         newValues: {quantity, movement, type}
     })
-    res.status(StatusCodes.OK).json({user: {id:creator.id,email:creator.email}, updatedAmount: amountUpdated, msg: "AMOUNT UPDATED SUCCESSFUL"})
+    res.status(StatusCodes.OK).json({
+        user:{id:creator.id,email:creator.email},
+        accountBalance: accountBalance,
+        amountUpdated: amount,
+        msg: "AMOUNT UPDATED SUCCESSFUL"})
 }
 
 module.exports = {

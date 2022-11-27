@@ -31,6 +31,11 @@ const User = sequelize.define('users', {
             type: DataTypes.ENUM('user','admin'),
             allowNull:false,
             defaultValue:'user'
+        },
+        accountBalance:{
+            type:DataTypes.NUMBER(19,2),
+            allowNull: false,
+            defaultValue: 0.0
         }
     }, { timestamps: false }
 )

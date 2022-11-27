@@ -52,7 +52,7 @@ const getAmountByIdFromDB = async (amountId) => {
         raw:true,
         include: { 
             all: true,
-            attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
+            attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator','accountBalance']}
         }
     })
     if(!amount) return null
@@ -72,7 +72,7 @@ const getAmountsByFilterFromDB = async (filter) => { // filter: creator id and t
         raw:true,
         include: {
             all: true,
-            attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator']}
+            attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator','accountBalance']}
         }
     })
     const renamedAmounts = renameAmounts(amounts)
@@ -88,7 +88,7 @@ const getAtLeastOneAmountUsingThisTypeIdInDB = async (typeId) => { // type id
         raw:true,
         include: { 
             all: true,
-            attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
+            attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator','accountBalance']}
         }
     })
     if(!singleAmount) return null
@@ -107,7 +107,7 @@ const getAmountsByCreatorIdFromDB = async (creatorId) => {
         raw:true,
         include: {
             all: true,
-            attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator']}
+            attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator','accountBalance']}
         },
         order: [['id', 'ASC']]
     })

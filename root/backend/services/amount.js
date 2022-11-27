@@ -29,6 +29,14 @@ const {
     isMovement
 } = require('./type')
 
+const {
+    calculateNewAccountBalanceUserByUserIdAndAmount,
+    resetAccountBalanceByUserId,
+    getAccountBalanceByUserId,
+    calculateNewAccountBalanceUserByUserIdAndDeletedAmount,
+    calculateNewAccountBalanceUserByUserIdAndNewAmount,
+} = require('./usersTypesAndAmounts')
+
 const isDate = (date) => {
     return (new Date(date) !== "Invalid Date") && !isNaN(new Date(date));
 }
@@ -89,7 +97,7 @@ const filterAmountsByTypes = (amounts,typesString) => {
     return amountsToFilter
 }
 
-const getAmountsByCreatorIdWithFilteringOption = async ({creatorId,filteringOption}) => {
+const getAmountsByCreatorIdWithFilteringOptionReturnAmountsAndAccountBalance = async ({creatorId,filteringOption}) => {
     if(!creatorId) throw new AmountSearchError(NOT_ENOUGH_DATA)
     let amountsToProcess = await getAmountsByCreatorIdFromDB(creatorId)
     if(filteringOption.created_at) { // check if there are creation dates to filter
@@ -108,7 +116,8 @@ const getAmountsByCreatorIdWithFilteringOption = async ({creatorId,filteringOpti
         // format -> <typeName1>,<typeName2>,...,<typeNameX>
         amountsToProcess = filterAmountsByTypes(amountsToProcess,filteringOption.type)
     }
-    return amountsToProcess // returning amounts already processed
+    const accountBalance = await getAccountBalanceByUserId(creatorId)
+    return {amounts:amountsToProcess, accountBalance} // returning amounts already processed
 }
 
 const getAmountById = async (amountId) => {
@@ -117,7 +126,7 @@ const getAmountById = async (amountId) => {
     return amount
 }
 
-const createAmountByQuantityMovementTypeAndCreatorId = async (values) => {
+const createAmountByQuantityMovementTypeAndCreatorIdReturnAmountCreatedAndAccountBalance = async (values) => {
     if( !values.quantity || 
         !values.movement || 
         !values.type ||
@@ -133,32 +142,36 @@ const createAmountByQuantityMovementTypeAndCreatorId = async (values) => {
     }
     const amountCreated = await createAmountInDB(amountToCreate)
     if(!amountCreated) throw new AmountCreateError(AMOUNT_CREATION_ERROR)
-    else return amountCreated
+    // calculate new account balance
+    const newAccountBalance = await calculateNewAccountBalanceUserByUserIdAndNewAmount({userId:amountCreated.creator,amount:amountCreated})
+    return {amount:amountCreated,accountBalance:newAccountBalance}
 }
 
-const deleteAllAmountsOfCreatorByCreatorId = async (creatorId) => {
+const deleteAllAmountsOfCreatorByCreatorIdReturnAmountsAndAccountBalance = async (creatorId) => {
     if(!creatorId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
     const amountsOfCreator = await getAmountsByCreatorIdFromDB(creatorId)
-    if(amountsOfCreator.length === 0) return []
+    if(amountsOfCreator.length === 0) return [] // no amounts to delete
     if(amountsOfCreator.length>1) {
         const amountsDeleted = await Promise.all(amountsOfCreator.map(async (amount) => {
-            const amountDeleted = await deleteAmountByIdInDB(amount.id)
-            return amountDeleted
+            await deleteAmountByIdInDB(amount.id)
         }))
-        return amountsDeleted
+        const accountBalance = await resetAccountBalanceByUserId(creatorId)
+        return {amounts:amountsDeleted,accountBalance:accountBalance}
     } else {
         const amountDeleted = await deleteAmountByIdInDB(amountsOfCreator[0].id)
-        return amountDeleted
+        const accountBalance = await resetAccountBalanceByUserId(creatorId)
+        return {amounts:amountDeleted,accountBalance:accountBalance}
     }
 }
 
-const deleteAmountByIdAndCreatorId = async ({amountId,creatorId}) => {
+const deleteAmountByIdAndCreatorIdReturnAmountAndAccountBalance = async ({amountId,creatorId}) => {
     if(!amountId || !creatorId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
     const amountToDelete = await getAmountById(amountId)
     if(!amountToDelete) throw new AmountDeleteError(AMOUNT_NOT_FOUND)
     if(Number(amountToDelete.creator) !== creatorId) throw new AmountDeleteError(ACCESS_UNAUTHORIZED)   
     const amountDeleted = await deleteAmountByIdInDB(amountId)
-    return amountDeleted
+    const accountBalance = await calculateNewAccountBalanceUserByUserIdAndDeletedAmount({userId:creatorId,amount:amountDeleted})
+    return {amount:amountDeleted,accountBalance}
 }
 
 const updateAmountByIdAndNewValues = async ({amountId,newValues:{quantity,amountType}}) => {
@@ -168,23 +181,28 @@ const updateAmountByIdAndNewValues = async ({amountId,newValues:{quantity,amount
     else return amountUpdated
 }
 
-const updateAmountByIdCreatorIdAndNewValues = async ({amountId, creatorId, newValues: {quantity, movement, type}}) => {
+const updateAmountByIdCreatorIdAndNewValuesReturnAmountAndAccountBalance = async ({amountId, creatorId, newValues: {quantity, movement, type}}) => {
     if( !amountId || !creatorId || !quantity || !movement || !type) throw new ServiceError(NOT_ENOUGH_DATA)
     const amountMatched = await getAmountById(amountId)
     if(!amountMatched) throw new AmountUpdateError(AMOUNT_NOT_FOUND)
-    if(Number(amountMatched.creator) !== creatorId) throw new AmountUpdateError(ACCESS_UNAUTHORIZED)
+    if(amountMatched.creator !== creatorId) throw new AmountUpdateError(ACCESS_UNAUTHORIZED)
     // check if the type (movement and name) is a default one OR is a custom one
     const newType = await getTypesByMovementNameAndUserId({movement, name: type, userId:creatorId})
     if(!newType) throw new AmountUpdateError(TYPE_NOT_FOUND)
     const amountUpdated = await updateAmountByIdAndNewValues({amountId,newValues:{quantity,amountType:newType.id}})
     if(!amountUpdated) throw new AmountUpdateError(AMOUNT_UPDATING_ERROR)
-    else return amountUpdated
+    let accountBalance = 0.
+    if(amountUpdated.quantity !== amountMatched.quantity || amountUpdated.movement !== amountMatched.movement) {
+        await calculateNewAccountBalanceUserByUserIdAndDeletedAmount({userId:creatorId,amount:amountMatched})
+        accountBalance = await calculateNewAccountBalanceUserByUserIdAndNewAmount({userId:creatorId,amount:amountUpdated})
+    }
+    return {amount: amountUpdated, accountBalance: accountBalance}
 }
 
 module.exports = {
-    getAmountsByCreatorIdWithFilteringOption,
-    createAmountByQuantityMovementTypeAndCreatorId,
-    deleteAmountByIdAndCreatorId,
-    deleteAllAmountsOfCreatorByCreatorId,
-    updateAmountByIdCreatorIdAndNewValues,
+    getAmountsByCreatorIdWithFilteringOptionReturnAmountsAndAccountBalance,
+    createAmountByQuantityMovementTypeAndCreatorIdReturnAmountCreatedAndAccountBalance,
+    deleteAmountByIdAndCreatorIdReturnAmountAndAccountBalance,
+    deleteAllAmountsOfCreatorByCreatorIdReturnAmountsAndAccountBalance,
+    updateAmountByIdCreatorIdAndNewValuesReturnAmountAndAccountBalance,
 }

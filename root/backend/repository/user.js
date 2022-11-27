@@ -7,20 +7,25 @@ const {
     UserUpdateError 
 } = require('../errors/user-errors')
 
+const renameUser = (user) => {
+    user.accountBalance = Number(user.accountBalance)
+    return user
+}
+
 const getUserByEmailFromDB = async (userEmail) => {
     if(!userEmail) throw new UserSearchError(NOT_ENOUGH_DATA)
     const where = {email:userEmail}
     const user = await User.findAll({where,raw:true})
     if(!user) return null
     if(user.length>0) {
-        return user[0]
+        return renameUser(user[0])
     }
 }
 
 const getUserByIdFromDB = async (userId) => {
     if(!userId) throw new UserSearchError(NOT_ENOUGH_DATA) 
     const user = await User.findByPk(userId,{raw:true})
-    if(user) return user
+    if(user) return renameUser(user)
     else return null
 }
 
@@ -31,7 +36,7 @@ const createUserInDB = async (user) => {
         !user.password||
         !user.created_at) throw new UserCreateError(NOT_ENOUGH_DATA)
     const result = await User.create(user)
-    return result
+    return renameUser(result)
 }
 
 const deleteUserByIdInDB = async (userId) => {
@@ -39,7 +44,7 @@ const deleteUserByIdInDB = async (userId) => {
     const where = {id: userId}
     const userDeleted = await User.findByPk(userId,{raw:true})
     await User.destroy({where})
-    return userDeleted
+    return renameUser(userDeleted)
 }
 
 const updateUserByIdFirstNameLastNameEmailAndPasswordInDB = async (values) => { 
@@ -58,7 +63,15 @@ const updateUserByIdFirstNameLastNameEmailAndPasswordInDB = async (values) => {
     await User.update(newValues,{where})
     const userUpdated = await User.findByPk(values.id,{raw:true})
     delete userUpdated.password // delete password element
-    return userUpdated
+    return renameUser(userUpdated)
+}
+
+const updateUserAccountBalanceByUserIdAndNewAccountBalanceInDB = async ({userId,accountBalance}) => {
+    if(!userId || typeof accountBalance === 'undefined') throw new UserUpdateError(NOT_ENOUGH_DATA)
+    const where = {id:userId}
+    await User.update({accountBalance},{where})
+    const userUpdated = await User.findByPk(userId)
+    return renameUser(userUpdated)
 }
 
 module.exports = {
@@ -67,4 +80,5 @@ module.exports = {
     getUserByIdFromDB,
     deleteUserByIdInDB,
     updateUserByIdFirstNameLastNameEmailAndPasswordInDB,
+    updateUserAccountBalanceByUserIdAndNewAccountBalanceInDB,
 }

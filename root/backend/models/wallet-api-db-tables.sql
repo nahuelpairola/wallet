@@ -159,6 +159,30 @@ ALTER TABLE ONLY public.users
 
 
 --
+-- Name: amounts amountType; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.amounts
+    ADD CONSTRAINT "amountType" FOREIGN KEY ("amountType") REFERENCES public.types(id) NOT VALID;
+
+
+--
+-- Name: types creator; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.types
+    ADD CONSTRAINT creator FOREIGN KEY (creator) REFERENCES public.users(id) NOT VALID;
+
+
+--
+-- Name: amounts creator; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.amounts
+    ADD CONSTRAINT creator FOREIGN KEY (creator) REFERENCES public.users(id) NOT VALID;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
