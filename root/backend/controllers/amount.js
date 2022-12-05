@@ -1,7 +1,7 @@
 const {StatusCodes} = require('http-status-codes')
 
-const { getAmountsByCreatorIdWithFilteringOptionReturnAmountsAndAccountBalance,
-        createAmountByQuantityMovementTypeAndCreatorIdReturnAmountCreatedAndAccountBalance,
+const { getAmountsAccountBalanceAndPageByCreatorIdWithFilteringOption,
+        createAmountByQuantityMovementTypeCreatedAtAndCreatorIdReturnAmountCreatedAndAccountBalance,
         deleteAmountByIdAndCreatorIdReturnAmountAndAccountBalance,
         updateAmountByIdCreatorIdAndNewValuesReturnAmountAndAccountBalance,
     } = require('../services/amount')
@@ -11,14 +11,16 @@ const createAmount = async (req,res) => {
         quantity:quantity,
         movement:movement,
         type:type,
+        created_at: created_at
     } = req.body
     const creator = req.user
 
-    const {amount,accountBalance} = await createAmountByQuantityMovementTypeAndCreatorIdReturnAmountCreatedAndAccountBalance({
+    const {amount,accountBalance} = await createAmountByQuantityMovementTypeCreatedAtAndCreatorIdReturnAmountCreatedAndAccountBalance({
         quantity: quantity,
         movement: movement,
         type: type,
-        creatorId: creator.id
+        creatorId: creator.id,
+        created_at: created_at
     })
     res.status(StatusCodes.CREATED).json({
         user:{id:creator.id,email:creator.email},
@@ -34,6 +36,8 @@ const getAmounts = async (req,res) => {
         created_at:created_at,
         movement:movement,
         type:type,
+        page:page,
+        operation:operation // join types or join movements
     } = req.query
     const creator = req.user
     const filteringOption = {}
@@ -41,14 +45,17 @@ const getAmounts = async (req,res) => {
     if(movement) filteringOption.movement = movement
     if(type) filteringOption.type = type
     if(created_at) filteringOption.created_at = created_at
-    const {amounts, accountBalance} = await getAmountsByCreatorIdWithFilteringOptionReturnAmountsAndAccountBalance({
+    if(operation) filteringOption.operation = operation
+    if(page) filteringOption.page = page
+    const {amounts, accountBalance, page:{actual,total},totalAmounts} = await getAmountsAccountBalanceAndPageByCreatorIdWithFilteringOption({
         creatorId:creator.id,
         filteringOption
     })
     res.status(StatusCodes.OK).json({
         user:{id:creator.id,email:creator.email},
         accountBalance:accountBalance,
-        nAmounts: amounts.length,
+        page:{actual:actual,nPages:total},
+        nAmounts: {actual:amounts.length,total:totalAmounts},
         amounts: amounts,
         msg: "AMOUNTS SEARCHING SUCCESSFUL"})
 }

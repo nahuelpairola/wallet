@@ -3,7 +3,7 @@ const router = express.Router()
 
 // validators
 const validator = require('express-joi-validation').createValidator({})
-const {UserBody,UserId} = require('../validators/user')
+const {UserBody,UserId} = require('../validators-sanitizers/user')
 
 const {updateUser, deleteUser} = require('../controllers/user')
 

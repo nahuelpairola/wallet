@@ -55,7 +55,7 @@ const generateTokenByEmail = (userEmail) => {
 }
 
 // check password, return token
-const getTokenAndUserIdByEmailAndPassword = async (emailAndPassword) => {
+const getTokenAndUserByEmailAndPassword = async (emailAndPassword) => {
     // check if emails user exists
     if(!emailAndPassword) throw new UserSearchError(NOT_ENOUGH_DATA)
     const userMatched = await getUserByEmailFromDB(emailAndPassword.email)
@@ -68,7 +68,7 @@ const getTokenAndUserIdByEmailAndPassword = async (emailAndPassword) => {
         const token = jwt.sign({email: userMatched.email},
                                 process.env.JWT_SECRET,
                                 {expiresIn:process.env.JWT_LIFETIME})
-        return {userId:userMatched.id,token:token} // return user id and access token
+        return {user:userMatched,token:token} // return user id and access token
     }
 }
 
@@ -81,7 +81,7 @@ const getUserByToken = async (token) => {
 }
 
 // store user and returns token
-const createUser = async (user) => {
+const createUserReturnUserAndToken = async (user) => {
     if(!user.first_name ||
         !user.last_name || 
         !user.email ||
@@ -162,38 +162,9 @@ const deleteUserByIdAndUser = async ({id: userId, user:{id,email}}) => {
     }
 }
 
-const calculateNewAccountBalanceUserByUserIdAndAmount = async ({userId,amount}) => {
-    if(!userId || !amount ) throw new UserUpdateError(NOT_ENOUGH_DATA)
-    const user = await getUserByIdFromDB(userId)
-    const newAccountBalance = 0.
-    if(amount.movement === 'input') {
-        newAccountBalance = user.accountBalance + amount.quantity
-    } else { // movement = output
-        newAccountBalance = user.accountBalance - amount.quantity
-    }    
-    const updatedUser = await updateUserAccountBalanceByUserIdAndNewAccountBalanceInDB({userId,accountBalance:newAccountBalance})
-    return updatedUser.accountBalance
-}
-
-const getAccountBalanceByUserId = async (userId) => {
-    if(!userId) throw new UserSearchError(NOT_ENOUGH_DATA)
-    const user = await getUserByIdFromDB(userId)
-    if(!user) throw new UserSearchError(USER_NOT_FOUND)
-    else return user.accountBalance
-}
-
-const resetAccountBalanceByUserId = async (userId) => {
-    if(!userId) throw new UserUpdateError(NOT_ENOUGH_DATA)
-    const user = await getUserByIdFromDB(userId)
-    if(!user) throw new UserSearchError(USER_NOT_FOUND)
-    const newAccountBalance = 0.
-    const updatedUser = await updateUserAccountBalanceByUserIdAndNewAccountBalanceInDB({userId,accountBalance:newAccountBalance})
-    return updatedUser.accountBalance
-}
-
 module.exports = {
-    createUser,
-    getTokenAndUserIdByEmailAndPassword,
+    createUserReturnUserAndToken,
+    getTokenAndUserByEmailAndPassword,
     getUserByToken,
     updateUserByIdUserAndNewValuesGetUserAndNewToken,
     deleteUserByIdAndUser,

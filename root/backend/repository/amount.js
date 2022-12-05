@@ -1,14 +1,8 @@
 
+const { Op } = require('sequelize')
 const {AmountCreateError, AmountSearchError, AmountUpdateError, AmountDeleteError} = require('../errors/amount-errors')
 const { NOT_ENOUGH_DATA } = require('../errors/error-msg-list')
-const { Amount} = require('../models')
-
-const renameAmounts = (amounts) => { // rename elements in amounts, a single one or an array
-    const renamedAmounts = amounts.map( (amount) => {
-        return renameSingleAmount(amount) // rename single amount
-    })
-    return renamedAmounts
-}
+const { Amount, User, Type} = require('../models')
 
 const renameSingleAmount = (amount) => {    
     delete amount['user.id']
@@ -34,6 +28,13 @@ const renameSingleAmount = (amount) => {
     return amount
 }
 
+const renameAmounts = (amounts) => { // rename elements in amounts, a single one or an array
+    const renamedAmounts = amounts.map( (amount) => {
+        return renameSingleAmount(amount) // rename single amount
+    })
+    return renamedAmounts
+}
+
 const createAmountInDB = async (amountToCreate) => {
     if( !amountToCreate.quantity || 
         !amountToCreate.amountType || 
@@ -46,7 +47,6 @@ const createAmountInDB = async (amountToCreate) => {
 
 const getAmountByIdFromDB = async (amountId) => {
     if(!amountId) throw new AmountSearchError(NOT_ENOUGH_DATA)
-    // const where = {id: amountId}
     const amount = await Amount.findByPk(amountId,{
         attributes: { exclude: ['amountType'] },
         raw:true,
@@ -60,23 +60,6 @@ const getAmountByIdFromDB = async (amountId) => {
         const renamedAmount = renameSingleAmount(amount)
         return renamedAmount
     }
-}
-
-const getAmountsByFilterFromDB = async (filter) => { // filter: creator id and type id
-    const where = {}
-    if(filter.creator) where.creator = filter.creator // creator id
-    if(filter.type) where.amountType = filter.type
-    const amounts = await Amount.findAll({  
-        where, 
-        attributes: { exclude: ['amountType'] },
-        raw:true,
-        include: {
-            all: true,
-            attributes: {exclude:['id','first_name','last_name','email','role','password','created_at','creator','accountBalance']}
-        }
-    })
-    const renamedAmounts = renameAmounts(amounts)
-    return renamedAmounts
 }
 
 const getAtLeastOneAmountUsingThisTypeIdInDB = async (typeId) => { // type id
@@ -98,21 +81,73 @@ const getAtLeastOneAmountUsingThisTypeIdInDB = async (typeId) => { // type id
     }
 }
 
-const getAmountsByCreatorIdFromDB = async (creatorId) => {
-    if(!creatorId) throw new AmountSearchError(NOT_ENOUGH_DATA)
-    const where = {creator: creatorId}
-    const amounts = await Amount.findAll({
-        where, 
-        attributes: { exclude: ['amountType'] },
+const countAllAmountsByWhereForAmountAndWhereForType = async ({whereForAmount, whereForType}) => {
+    const countAllAmounts = await Amount.count({
+        whereForAmount,
         raw:true,
-        include: {
-            all: true,
-            attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator','accountBalance']}
+        include: [{
+            model:Type,
+            where: whereForType
+        },{
+            model:User
+        }]
+    })
+    return countAllAmounts
+}
+
+const calculateNumberOfPagesByCountAllAmounts = (countAllAmounts) => {
+    if(!countAllAmounts) throw new AmountSearchError(NOT_ENOUGH_DATA)
+    // 50 amounts per page
+    if(countAllAmounts % 50 !== 0) return (Math.floor(countAllAmounts/50)+1)  
+    else return Math.floor(countAllAmounts/50)
+}
+
+const getAmountsCountAllAmountsAndNumberOfPagesByCreatorIdAndFilteringOptionFromDB = async ({creatorId,filteringOption}) => {
+    if(!creatorId) throw new AmountSearchError(NOT_ENOUGH_DATA)
+    const where = {creator:creatorId}
+    if(filteringOption.quantity) {
+        where.quantity = {}
+        if(filteringOption.quantity[0] !== '') where.quantity[Op.gte] = filteringOption.quantity[0]
+        if(filteringOption.quantity[1] !== '') where.quantity[Op.lte] = filteringOption.quantity[1]
+    }
+    if(filteringOption.created_at) {
+        where.created_at = {}
+        if(filteringOption.created_at[0] !== '') where.created_at[Op.gte] = filteringOption.created_at[0]
+        if(filteringOption.created_at[1] !== '') where.created_at[Op.lte] = filteringOption.created_at[1]
+    }
+    const whereForType = {}
+    if(filteringOption.type) {
+        whereForType.name = {[Op.or]:filteringOption.type.map((type)=>type)}
+    }
+    if(filteringOption.movement) {whereForType.movement = {[Op.eq]:filteringOption.movement}}
+
+    const countAllAmounts = await countAllAmountsByWhereForAmountAndWhereForType({whereForAmount:where,whereForType:whereForType})
+
+    const amounts = await Amount.findAll({
+        where,
+        attributes: {
+            exclude: ['amountType'],
         },
-        order: [['id', 'ASC']]
+        raw:true,
+        include: [{
+            model:Type,
+            where: whereForType,
+            attributes: {
+                exclude:['creator','created_at']
+            }
+        },{
+            model:User,
+            attributes: {
+                exclude:['first_name','last_name','email','role','password','created_at','accountBalance']
+            }
+        }],
+        order: [['created_at', 'DESC']],
+        limit: 50,
+        offset: (filteringOption.page-1)*50
     })
     const renamedAmounts = renameAmounts(amounts)
-    return renamedAmounts
+    const numberOfPages = calculateNumberOfPagesByCountAllAmounts(countAllAmounts)
+    return {amounts:renamedAmounts,countAllAmounts,numberOfPages}
 }
 
 const deleteAmountByIdInDB = async (amountId) => {
@@ -140,9 +175,8 @@ const updateAmountByIdQuantityAndAmountTypeInDB = async (values) => { // values 
 module.exports = {
     createAmountInDB,
     getAmountByIdFromDB,
-    getAmountsByFilterFromDB,
     getAtLeastOneAmountUsingThisTypeIdInDB,
-    getAmountsByCreatorIdFromDB,
+    getAmountsCountAllAmountsAndNumberOfPagesByCreatorIdAndFilteringOptionFromDB,
     deleteAmountByIdInDB,
     updateAmountByIdQuantityAndAmountTypeInDB,
 }

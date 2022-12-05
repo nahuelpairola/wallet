@@ -1,7 +1,7 @@
 const { StatusCodes, OK } = require("http-status-codes")
 const {INTERNAL_SERVER_ERROR } = require('../errors/error-msg-list')
 
-const {isConnectionHealthy} = require('../services/health')
+const {isConnectionHealthy} = require('../db/healthyCheck')
 
 const healthCheck = async (req, res) => {
     if(isConnectionHealthy()) {
