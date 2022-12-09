@@ -22,7 +22,8 @@ const filterDateMethod = (created_at, helper) => {
   if(!created_at.includes(';')) return helper.error('created_at must contain ";"')
   let created_atArray = created_at.split(';').map((date)=>{
     if(isDate(date)) return date
-    else return ''
+    if(date === '') return ''
+    else return helper.error('created_at must be empty or a date and contain ";"')
   })
   return created_atArray
 }
@@ -44,13 +45,13 @@ const AmountQuery = Joi.object({
   type: Joi.string().custom(typeMethod,'type validator').optional(),
   quantity: Joi.string().custom(quantityMethod,'quantity validator').optional(),
   created_at: Joi.string().custom(filterDateMethod,'created_at validator').optional(),
-  page: Joi.number().positive().integer().optional(),
-  operation: Joi.string().valid('join_types','join_movements').optional()
-})
+  join: Joi.string().valid('type','movement').optional(),
+  limit: Joi.number().integer().positive().min(5).default(100).max(100).options({convert:true}).optional().when('join', { is: Joi.exist(), then: Joi.forbidden()}),
+  page: Joi.number().integer().positive().default(1).options({convert:true}).optional().when('join', { is: Joi.exist(), then: Joi.forbidden()}),
+}).and('page','limit')
 
 const AmountId = Joi.object({
   id:Joi.number().integer().options({convert:true}).required()
 })
-
 
 module.exports = {AmountBody,AmountId,AmountQuery}

@@ -3,6 +3,7 @@ const { Op } = require('sequelize')
 const {AmountCreateError, AmountSearchError, AmountUpdateError, AmountDeleteError} = require('../errors/amount-errors')
 const { NOT_ENOUGH_DATA } = require('../errors/error-msg-list')
 const { Amount, User, Type} = require('../models')
+const { sequelize } = require('../db/connect')
 
 const renameSingleAmount = (amount) => {    
     delete amount['user.id']
@@ -26,13 +27,6 @@ const renameSingleAmount = (amount) => {
     }
     amount.quantity = Number(amount.quantity)        
     return amount
-}
-
-const renameAmounts = (amounts) => { // rename elements in amounts, a single one or an array
-    const renamedAmounts = amounts.map( (amount) => {
-        return renameSingleAmount(amount) // rename single amount
-    })
-    return renamedAmounts
 }
 
 const createAmountInDB = async (amountToCreate) => {
@@ -81,28 +75,7 @@ const getAtLeastOneAmountUsingThisTypeIdInDB = async (typeId) => { // type id
     }
 }
 
-const countAllAmountsByWhereForAmountAndWhereForType = async ({whereForAmount, whereForType}) => {
-    const countAllAmounts = await Amount.count({
-        whereForAmount,
-        raw:true,
-        include: [{
-            model:Type,
-            where: whereForType
-        },{
-            model:User
-        }]
-    })
-    return countAllAmounts
-}
-
-const calculateNumberOfPagesByCountAllAmounts = (countAllAmounts) => {
-    if(!countAllAmounts) throw new AmountSearchError(NOT_ENOUGH_DATA)
-    // 50 amounts per page
-    if(countAllAmounts % 50 !== 0) return (Math.floor(countAllAmounts/50)+1)  
-    else return Math.floor(countAllAmounts/50)
-}
-
-const getAmountsCountAllAmountsAndNumberOfPagesByCreatorIdAndFilteringOptionFromDB = async ({creatorId,filteringOption}) => {
+const getWhereForAmountByCreatorIdAndFilteringOption = ({creatorId,filteringOption}) => {
     if(!creatorId) throw new AmountSearchError(NOT_ENOUGH_DATA)
     const where = {creator:creatorId}
     if(filteringOption.quantity) {
@@ -115,39 +88,115 @@ const getAmountsCountAllAmountsAndNumberOfPagesByCreatorIdAndFilteringOptionFrom
         if(filteringOption.created_at[0] !== '') where.created_at[Op.gte] = filteringOption.created_at[0]
         if(filteringOption.created_at[1] !== '') where.created_at[Op.lte] = filteringOption.created_at[1]
     }
-    const whereForType = {}
+    return where
+}
+
+const getWhereForTypeByFilteringOption = (filteringOption) => {
+    const where = {}
     if(filteringOption.type) {
-        whereForType.name = {[Op.or]:filteringOption.type.map((type)=>type)}
+        where.name = {[Op.or]:filteringOption.type.map((type)=>type)}
     }
-    if(filteringOption.movement) {whereForType.movement = {[Op.eq]:filteringOption.movement}}
+    if(filteringOption.movement) {where.movement = {[Op.eq]:filteringOption.movement}}
+    return where
+}
 
-    const countAllAmounts = await countAllAmountsByWhereForAmountAndWhereForType({whereForAmount:where,whereForType:whereForType})
-
-    const amounts = await Amount.findAll({
-        where,
-        attributes: {
-            exclude: ['amountType'],
-        },
+const getFindAllOptionByWhereForAmountWhereForTypeAndJoin = ({whereForAmount,whereForType,join}) => {
+    let option = {
+        where:whereForAmount,
         raw:true,
-        include: [{
+        attributes:[],
+        include: {
             model:Type,
             where: whereForType,
-            attributes: {
-                exclude:['creator','created_at']
-            }
-        },{
-            model:User,
-            attributes: {
-                exclude:['first_name','last_name','email','role','password','created_at','accountBalance']
-            }
-        }],
-        order: [['created_at', 'DESC']],
-        limit: 50,
-        offset: (filteringOption.page-1)*50
-    })
-    const renamedAmounts = renameAmounts(amounts)
-    const numberOfPages = calculateNumberOfPagesByCountAllAmounts(countAllAmounts)
-    return {amounts:renamedAmounts,countAllAmounts,numberOfPages}
+            attributes: []
+        }
+    }
+    if(!join) {
+        option.attributes = [
+            ['id','id'], // get amount id
+            ['creator','creator'], // get amount creator
+            ['created_at','created_at'], // get amoiunt created_at
+            [sequelize.literal('"type"."id"'), "typeId"], // rename type.id to typeId
+            [sequelize.literal('"type"."name"'), "type"], // the type name will be type
+            [sequelize.literal('"type"."movement"'), "movement"], // type movement as movement
+            [sequelize.literal('"type"."default"'), "default"], // type default as default
+        ]
+        option.order = [['created_at', 'DESC'],['id','DESC']]
+        return option
+    }
+     // join = type or = movement
+    if(join === 'type') {
+        option.attributes = [
+            [sequelize.fn("SUM", sequelize.col("quantity")), "quantity"],
+            ['creator','creator'],
+            ['amountType','typeId'],
+            [sequelize.literal('"type"."name"'), "type"], // the type name will be type
+            [sequelize.literal('"type"."movement"'), "movement"], // type movement as movement
+            [sequelize.literal('"type"."default"'), "default"], // type default as default
+        ]
+        option.group = ["amounts.creator","default","movement","type","typeId"]
+        return option
+    }
+    if(join === 'movement') {
+        option.attributes = [
+            [sequelize.fn("SUM", sequelize.col("quantity")), "quantity"],
+            ['creator','creator'],
+            [sequelize.literal('"type"."movement"'), "movement"], // type movement as movement
+        ]
+        option.group = ["amounts.creator","movement"]
+        return option
+    }
+}
+
+const getPaginationByLimitActualPageAndCountAmounts = ({limit,actualPage,countAmounts}) => {
+    let pagination = {
+        current_page: actualPage,
+        next_page:null,
+        previous_page:null,
+        total_pages: null,
+        per_page: limit,
+    }
+    // calculate total_pages
+    if(countAmounts % pagination.per_page !== 0) pagination.total_pages = Math.floor(countAmounts/limit)+1  
+    else pagination.total_pages = Math.floor(countAmounts/limit)
+    // calculate next and previous page
+    pagination.previous_page = pagination.current_page - 1
+    if(pagination.current_page===1) pagination.previous_page = null
+    pagination.next_page = pagination.current_page + 1
+    if(pagination.current_page === pagination.total_pages) {
+        pagination.current_page = pagination.total_pages
+        pagination.next_page = null
+    }
+    return pagination
+}
+
+const getAmountsByCreatorIdAndFilteringOptionFromDB = async ({creatorId,filteringOption}) => {
+    if(!creatorId) throw new AmountSearchError(NOT_ENOUGH_DATA)
+    const whereForAmount = getWhereForAmountByCreatorIdAndFilteringOption({creatorId,filteringOption})
+    const whereForType = getWhereForTypeByFilteringOption(filteringOption)
+    const findAllAmountsOptions = getFindAllOptionByWhereForAmountWhereForTypeAndJoin({whereForAmount,whereForType,join:filteringOption.join})
+    findAllAmountsOptions.limit = filteringOption.limit
+    findAllAmountsOptions.offset = (filteringOption.page-1)*filteringOption.limit
+    let result = null, pagination = null
+    if(!filteringOption.join) {
+        result = await Amount.findAndCountAll(findAllAmountsOptions)
+        pagination = getPaginationByLimitActualPageAndCountAmounts({
+            limit:filteringOption.limit,
+            actualPage:filteringOption.page,
+            countAmounts:result.count
+        })
+    } else {
+        result = await Amount.findAll(findAllAmountsOptions)
+        pagination = getPaginationByLimitActualPageAndCountAmounts({
+            limit:filteringOption.limit,
+            actualPage:filteringOption.page,
+            countAmounts:result.length
+        })
+    }
+    return {
+        pagination:pagination,
+        amounts:result.rows || result
+    }
 }
 
 const deleteAmountByIdInDB = async (amountId) => {
@@ -176,7 +225,10 @@ module.exports = {
     createAmountInDB,
     getAmountByIdFromDB,
     getAtLeastOneAmountUsingThisTypeIdInDB,
-    getAmountsCountAllAmountsAndNumberOfPagesByCreatorIdAndFilteringOptionFromDB,
+    // countAmountsByCreatorIdAndFilteringOptionFromDB,
+    getAmountsByCreatorIdAndFilteringOptionFromDB,
     deleteAmountByIdInDB,
     updateAmountByIdQuantityAndAmountTypeInDB,
 }
+
+

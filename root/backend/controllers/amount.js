@@ -1,7 +1,7 @@
 const {StatusCodes} = require('http-status-codes')
 
-const { getAmountsAccountBalanceAndPageByCreatorIdWithFilteringOption,
-        createAmountByQuantityMovementTypeCreatedAtAndCreatorIdReturnAmountCreatedAndAccountBalance,
+const { getAmountsDataByCreatorIdAndFilteringOption,
+    createAmountByValuesReturnAmountCreatedAndAccountBalance,
         deleteAmountByIdAndCreatorIdReturnAmountAndAccountBalance,
         updateAmountByIdCreatorIdAndNewValuesReturnAmountAndAccountBalance,
     } = require('../services/amount')
@@ -15,7 +15,7 @@ const createAmount = async (req,res) => {
     } = req.body
     const creator = req.user
 
-    const {amount,accountBalance} = await createAmountByQuantityMovementTypeCreatedAtAndCreatorIdReturnAmountCreatedAndAccountBalance({
+    const {amount,accountBalance} = await createAmountByValuesReturnAmountCreatedAndAccountBalance({
         quantity: quantity,
         movement: movement,
         type: type,
@@ -36,8 +36,9 @@ const getAmounts = async (req,res) => {
         created_at:created_at,
         movement:movement,
         type:type,
+        join:join, // join types or join movements
         page:page,
-        operation:operation // join types or join movements
+        limit:limit,
     } = req.query
     const creator = req.user
     const filteringOption = {}
@@ -45,18 +46,18 @@ const getAmounts = async (req,res) => {
     if(movement) filteringOption.movement = movement
     if(type) filteringOption.type = type
     if(created_at) filteringOption.created_at = created_at
-    if(operation) filteringOption.operation = operation
+    if(join) filteringOption.join = join 
     if(page) filteringOption.page = page
-    const {amounts, accountBalance, page:{actual,total},totalAmounts} = await getAmountsAccountBalanceAndPageByCreatorIdWithFilteringOption({
+    if(limit) filteringOption.limit = limit
+    const data = await getAmountsDataByCreatorIdAndFilteringOption({
         creatorId:creator.id,
         filteringOption
     })
     res.status(StatusCodes.OK).json({
         user:{id:creator.id,email:creator.email},
-        accountBalance:accountBalance,
-        page:{actual:actual,nPages:total},
-        nAmounts: {actual:amounts.length,total:totalAmounts},
-        amounts: amounts,
+        accountBalance:data.accountBalance,
+        pagination:data.pagination,
+        data:data.amounts,
         msg: "AMOUNTS SEARCHING SUCCESSFUL"})
 }
 
