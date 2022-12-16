@@ -2,7 +2,7 @@
 
 const { NOT_ENOUGH_DATA, USER_NOT_FOUND } = require('../errors/error-msg-list')
 const { UserUpdateError, UserSearchError } = require('../errors/user-errors')
-const {getAtLeastOneAmountUsingThisTypeIdInDB} = require('../repository/amount')
+const {isAnAmountUsingThisTypeId} = require('../repository/amount')
 const { getUserByIdFromDB, updateUserAccountBalanceByUserIdAndNewAccountBalanceInDB } = require('../repository/user')
 
 const isUserAnAdmin = (user) => {
@@ -11,11 +11,10 @@ const isUserAnAdmin = (user) => {
     else return false
 }
 
-const isAnAmountUsingThisTypeId = async (typeId) => {
+const isTypeIdInAmounts = async (typeId) => {
     if(!typeId) throw new ServiceError(NOT_ENOUGH_DATA)
-    const amount = await getAtLeastOneAmountUsingThisTypeIdInDB(typeId)
-    if(amount) return true
-    else return false
+    if(await isAnAmountUsingThisTypeId(typeId)) return true
+    return false
 }
 
 const calculateNewAccountBalanceUserByUserIdAndNewAmount = async ({userId,amount}) => {
@@ -63,7 +62,7 @@ const resetAccountBalanceByUserId = async (userId) => {
 
 module.exports = {
     isUserAnAdmin,
-    isAnAmountUsingThisTypeId,
+    isTypeIdInAmounts,
     calculateNewAccountBalanceUserByUserIdAndNewAmount,
     calculateNewAccountBalanceUserByUserIdAndDeletedAmount,
     getAccountBalanceByUserId,

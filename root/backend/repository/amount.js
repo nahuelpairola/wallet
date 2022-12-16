@@ -56,23 +56,14 @@ const getAmountByIdFromDB = async (amountId) => {
     }
 }
 
-const getAtLeastOneAmountUsingThisTypeIdInDB = async (typeId) => { // type id
+const isAnAmountUsingThisTypeId = async (typeId) => { // type id
     if(!typeId) throw new AmountSearchError(NOT_ENOUGH_DATA)
-    const where = {amountType:typeId}
-    const singleAmount = await Amount.findOne({
-        where, 
-        attributes: { exclude: ['amountType'] },
+    const count = await Amount.count({
+        where:{amountType:typeId},
         raw:true,
-        include: { 
-            all: true,
-            attributes: {exclude:['first_name','last_name','email','role','password','created_at','creator','accountBalance']}
-        }
+        limit:1
     })
-    if(!singleAmount) return null
-    else {
-        const renamedAmount = renameSingleAmount(singleAmount)
-        return renamedAmount
-    }
+    return (count === 0 ? false : true)
 }
 
 const getWhereForAmountByCreatorIdAndFilteringOption = ({creatorId,filteringOption}) => {
@@ -115,7 +106,7 @@ const getFindAllOptionByWhereForAmountWhereForTypeAndJoin = ({whereForAmount,whe
         option.attributes = [
             ['id','id'], // get amount id
             ['creator','creator'], // get amount creator
-            ['created_at','created_at'], // get amoiunt created_at
+            ['created_at','created_at'], // get amount created_at
             [sequelize.literal('"type"."id"'), "typeId"], // rename type.id to typeId
             [sequelize.literal('"type"."name"'), "type"], // the type name will be type
             [sequelize.literal('"type"."movement"'), "movement"], // type movement as movement
@@ -224,7 +215,7 @@ const updateAmountByIdQuantityAndAmountTypeInDB = async (values) => { // values 
 module.exports = {
     createAmountInDB,
     getAmountByIdFromDB,
-    getAtLeastOneAmountUsingThisTypeIdInDB,
+    isAnAmountUsingThisTypeId,
     // countAmountsByCreatorIdAndFilteringOptionFromDB,
     getAmountsByCreatorIdAndFilteringOptionFromDB,
     deleteAmountByIdInDB,

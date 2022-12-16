@@ -1,9 +1,11 @@
 
+const {sequelize} = require('../db/connect')
+const { Op, QueryTypes } = require('sequelize')
 const { NOT_ENOUGH_DATA, } = require('../errors/error-msg-list')
 const { TypeCreateError, TypeSearchError, TypeDeleteError, TypeUpdateError } = require('../errors/type-errors')
 const { Type } = require('../models')
 
-const createTypeInDB = async (newType) => { // create type
+const create = async (newType) => { // create type
     if( !newType.movement || 
         !newType.name || 
         !newType.created_at || 
@@ -14,12 +16,39 @@ const createTypeInDB = async (newType) => { // create type
     return typeCreatedRaw
 }
 
-const getTypeByIdFromDB = async (typeId) => {
-    if(!typeId) throw new TypeSearchError(NOT_ENOUGH_DATA)
-    where = {id: typeId}
-    const type = await Type.findByPk(typeId,{raw: true})
-    if(type) return type
-    else return null // type not founded
+const exists = async (type) => { 
+    // check if it is not a default type OR a custom type
+    if( !type.movement || 
+        !type.name ||
+        !type.creator || 
+        typeof type.default === 'undefined') throw new TypeCreateError(NOT_ENOUGH_DATA)
+    const result = await Type.findOne({
+        where:{
+            [Op.or]:[
+                {
+                    [Op.and]:[{movement:type.movement},{name:type.name},{default:true}]
+                },
+                {
+                    [Op.and]:[{movement:type.movement},{name:type.name},{default:false},{creator:type.creator}]
+                }
+            ]
+        },
+        raw:true
+    })
+    return (result === null ? false : true)
+}
+
+const getByCreator = async (creatorId) => {
+    if(!creatorId) throw new TypeSearchError(NOT_ENOUGH_DATA)
+    const allTypes = await Type.findAll({
+        where:{[Op.or]:[
+            {default:true},
+            {creator:creatorId}
+        ]},
+        order:[['created_at', 'DESC'],['id','DESC']],
+        raw:true
+    })
+    return allTypes
 }
 
 const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement, name and default
@@ -40,24 +69,15 @@ const getTypesByFilterFromDB = async (filter) => { // filter: creator, movement,
     } else return null // types not founded
 }
 
-const getTypesByCreatorIdFromDB = async (creatorId) => {
-    if(!creatorId) throw new TypeSearchError(NOT_ENOUGH_DATA)
-    const where = {creator: creatorId}
-    const types = await Type.findAll({where,raw:true,order: [['id', 'ASC']]})
-    if(types.length>0) {
-        // if(types.length === 1) return types[0]
-        return types
-    } else return null // types not founded
-}
-
-const deleteTypeByIdInDB = async (typeId) => {
-    if(!typeId) throw new TypeDeleteError(NOT_ENOUGH_DATA)
-    const typeToDelete = await Type.findByPk(typeId,{raw:true})
-    if(!typeToDelete) return null
-    const where = {id:typeId}
-    await Type.destroy({where})
-    // delete typeToDelete.id
-    return typeToDelete
+const deleteByIdAndCreatorIfNotUsed = async ({id,creator}) => {
+    if(!id || !creator) throw new TypeDeleteError(NOT_ENOUGH_DATA)
+    const result = await sequelize.query(
+        `DELETE FROM types 
+        WHERE (types.id = ${id}) 
+        AND (types.creator = ${creator}) 
+        AND NOT (EXISTS 
+            (SELECT * FROM amounts WHERE "amountType" = ${id}))`)
+    return (result[1].rowCount === 1 ? true : false) 
 }
 
 const updateNameAndMovementInTypeByIdInDB = async (idNameAndMovement) => { // values must contain type id
@@ -85,11 +105,11 @@ const isMovement = (movementToCompare) => {
 }
 
 module.exports = {
-    createTypeInDB,
-    getTypeByIdFromDB,
+    create,
     getTypesByFilterFromDB,
-    getTypesByCreatorIdFromDB,
-    deleteTypeByIdInDB,
     updateNameAndMovementInTypeByIdInDB,
-    isMovement
+    isMovement,
+    exists,
+    getByCreator,
+    deleteByIdAndCreatorIfNotUsed
 }

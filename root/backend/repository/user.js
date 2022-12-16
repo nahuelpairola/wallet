@@ -12,34 +12,33 @@ const renameUser = (user) => {
     return user
 }
 
-const getUserByEmailFromDB = async (userEmail) => {
-    if(!userEmail) throw new UserSearchError(NOT_ENOUGH_DATA)
-    const where = {email:userEmail}
-    const user = await User.findAll({where,raw:true})
+const getByEmail = async (email) => { // EX GETUSERBYEMAILFROMDB
+    if(!email) throw new UserSearchError(NOT_ENOUGH_DATA)
+    const where = {email:email}
+    const user = await User.findOne({where,raw:true})
     if(!user) return null
-    if(user.length>0) {
-        return renameUser(user[0])
-    }
+    return renameUser(user)
 }
 
-const getUserByIdFromDB = async (userId) => {
+const getById = async (userId) => {
     if(!userId) throw new UserSearchError(NOT_ENOUGH_DATA) 
     const user = await User.findByPk(userId,{raw:true})
     if(user) return renameUser(user)
     else return null
 }
 
-const createUserInDB = async (user) => {
+const create = async (user) => {
     if( !user.first_name||
         !user.last_name||
         !user.email||
         !user.password||
         !user.created_at) throw new UserCreateError(NOT_ENOUGH_DATA)
     const result = await User.create(user)
+    delete result.password
     return renameUser(result)
 }
 
-const deleteUserByIdInDB = async (userId) => {
+const deleteById = async (userId) => {
     if(!userId) throw new UserDeleteError(NOT_ENOUGH_DATA)
     const where = {id: userId}
     const userDeleted = await User.findByPk(userId,{raw:true})
@@ -47,7 +46,7 @@ const deleteUserByIdInDB = async (userId) => {
     return renameUser(userDeleted)
 }
 
-const updateUserByIdFirstNameLastNameEmailAndPasswordInDB = async (values) => { 
+const update = async (values) => { 
     if( !values.id ||
         !values.first_name || 
         !values.last_name || 
@@ -66,19 +65,19 @@ const updateUserByIdFirstNameLastNameEmailAndPasswordInDB = async (values) => {
     return renameUser(userUpdated)
 }
 
-const updateUserAccountBalanceByUserIdAndNewAccountBalanceInDB = async ({userId,accountBalance}) => {
+const updateAccountBalanceById = async ({userId,accountBalance}) => {
     if(!userId || typeof accountBalance === 'undefined') throw new UserUpdateError(NOT_ENOUGH_DATA)
     const where = {id:userId}
-    await User.update({accountBalance},{where})
+    await User.update({accountBalance:accountBalance},{where})
     const userUpdated = await User.findByPk(userId)
     return renameUser(userUpdated)
 }
 
 module.exports = {
-    createUserInDB,
-    getUserByEmailFromDB,
-    getUserByIdFromDB,
-    deleteUserByIdInDB,
-    updateUserByIdFirstNameLastNameEmailAndPasswordInDB,
-    updateUserAccountBalanceByUserIdAndNewAccountBalanceInDB,
+    create,
+    getByEmail,
+    getById,
+    deleteById,
+    update,
+    updateAccountBalanceById,
 }

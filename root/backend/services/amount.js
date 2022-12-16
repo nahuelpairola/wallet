@@ -19,7 +19,6 @@ const {
     createAmountInDB,
     getAmountByIdFromDB,
     getAmountsByCreatorIdAndFilteringOptionFromDB,
-    countAmountsByCreatorIdAndFilteringOptionFromDB,
     deleteAmountByIdInDB,
     updateAmountByIdQuantityAndAmountTypeInDB,
 } = require('../repository/amount')
@@ -77,7 +76,7 @@ const createAmountByValuesReturnAmountCreatedAndAccountBalance = async (values) 
 
 const deleteAllAmountsOfCreatorByCreatorIdReturnAmountsAndAccountBalance = async (creatorId) => {
     if(!creatorId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
-    const amountsOfCreator = await getAmountsByCreatorIdFromDB(creatorId)
+    const amountsOfCreator = await countAmountsByCreatorIdAndFilteringOptionFromDB(creatorId)
     if(amountsOfCreator.length === 0) return [] // no amounts to delete
     if(amountsOfCreator.length>1) {
         const amountsDeleted = await Promise.all(amountsOfCreator.map(async (amount) => {

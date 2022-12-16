@@ -3,16 +3,16 @@ const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
 
 const { 
-    createUserInDB, 
-    getUserByEmailFromDB,
-    deleteUserByIdInDB,
-    updateUserByIdFirstNameLastNameEmailAndPasswordInDB,
+    create,
+    update,
     updateUserAccountBalanceByUserIdAndNewAccountBalanceInDB,
-    getUserByIdFromDB
+    getById,
+    getByEmail,
+    deleteById,
 } = require('../repository/user')
 
 const {
-    deleteAllAmountsOfCreatorByCreatorId
+    deleteAllAmountsOfCreatorByCreatorIdReturnAmountsAndAccountBalance
 } = require('./amount')
 
 const { 
@@ -31,6 +31,7 @@ const { PASSWORD_INCORRECT,
         USER_UPDATING_UNAUTHORIZED,
         USER_DELETING_UNAUTHORIZED,
         USER_EMAIL_NOT_AVAILABLE,
+        TOKEN_UNAUTHORIZED,
         } = require('../errors/error-msg-list')
 
 const {
@@ -54,58 +55,55 @@ const generateTokenByEmail = (userEmail) => {
     return token
 }
 
-// check password, return token
-const getTokenAndUserByEmailAndPassword = async (emailAndPassword) => {
-    // check if emails user exists
-    if(!emailAndPassword) throw new UserSearchError(NOT_ENOUGH_DATA)
-    const userMatched = await getUserByEmailFromDB(emailAndPassword.email)
+const deletePassword = (user) => {
+    delete user.password
+    return user
+}
+
+const getByEmailAndPassword = async ({email,password}) => {
+    if(!email || !password) throw new UserSearchError(NOT_ENOUGH_DATA)
+    const userMatched = await getByEmail(email)
     if(!userMatched) throw new UserNotFoundError(USER_NOT_FOUND)
-    else {
-        // check password
-        const isMatch = await bcrypt.compare(emailAndPassword.password, userMatched.password)
-        if ( !isMatch ) throw new UserSearchError(PASSWORD_INCORRECT)
-        // generate token
-        const token = jwt.sign({email: userMatched.email},
-                                process.env.JWT_SECRET,
-                                {expiresIn:process.env.JWT_LIFETIME})
-        return {user:userMatched,token:token} // return user id and access token
+    // check password
+    const isMatch = await bcrypt.compare(password, userMatched.password)
+    if ( !isMatch ) throw new UserSearchError(PASSWORD_INCORRECT)
+    // generate token
+    const token = jwt.sign({email: userMatched.email},
+                            process.env.JWT_SECRET,
+                            {expiresIn:process.env.JWT_LIFETIME})
+    return {
+        user: deletePassword(userMatched),
+        token:token
     }
 }
 
-// check user by token
-const getUserByToken = async (token) => {
+const getByToken = async (token) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET)    
-    const userMatched = await getUserByEmailFromDB(payload.email)
-    if(!userMatched) return null
-    else return userMatched
+    const userMatched = await getByEmail(payload.email)
+    if(!userMatched) throw new UserSearchError(TOKEN_UNAUTHORIZED)
+    return deletePassword(userMatched)
 }
 
-// store user and returns token
-const createUserReturnUserAndToken = async (user) => {
+const register = async (user) => {
     if(!user.first_name ||
         !user.last_name || 
         !user.email ||
         !user.password) throw new UserCreateError(NOT_ENOUGH_DATA)
-
     // check if emails user exists
-    const userMatched = await getUserByEmailFromDB(user.email)
-
-    if(!userMatched) {
-        user.created_at = new Date() // add time when it was created
-        user.password = await generatePassword(user.password)
-        const userCreated = await createUserInDB({ // store in db
-            first_name: user.first_name,
-            last_name: user.last_name,
-            email: user.email,
-            password: user.password,
-            created_at: user.created_at,
-            role: user.role
-        })
-        // create token, payload = email
-        const token = generateTokenByEmail(userCreated.email)
-
-        return ( { user:userCreated, token:token } )
-    } else throw new UserCreateError(USER_ALREADY_CREATED)
+    const userMatched = await getByEmail(user.email)
+    if(userMatched) throw new UserCreateError(USER_ALREADY_CREATED)
+    user.created_at = new Date() // add time when it was created
+    user.password = await generatePassword(user.password)
+    const userCreated = await create({ // store in db
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        password: user.password,
+        created_at: user.created_at,
+        role: user.role
+    })
+    const token = generateTokenByEmail(userCreated.email)
+    return ( { user:deletePassword(user), token:token } )
 }
 
 const updateUserByIdUserAndNewValuesGetUserAndNewToken = async ({id: userId, user , newValues}) => {
@@ -139,23 +137,52 @@ const updateUserByIdUserAndNewValuesGetUserAndNewToken = async ({id: userId, use
     }
 }
 
-const deleteUserByIdAndUser = async ({id: userId, user:{id,email}}) => {
-    if(!userId || !id || !email) throw new UserDeleteError(NOT_ENOUGH_DATA)
+const updateByIdAndValues = async ({id: userId, values: values}) => {
+    if( !userId ||
+        !values.id ||
+        !user.email ||
+        !values.first_name || 
+        !values.last_name ||
+        !values.email ||
+        !values.password ) throw new UserUpdateError(NOT_ENOUGH_DATA)
+
+    if(userId !== values.id) throw new UserUpdateError(USER_UPDATING_UNAUTHORIZED) // check user acces vs user id to update
+    
+    const isEmailUsed = await getByEmail(values.email) // check if the email is available
+    if(isEmailUsed && isEmailUsed.id !== userId) throw new UserUpdateError(USER_EMAIL_NOT_AVAILABLE)
+    
+    values.password = await generatePassword(values.password) // cript new passwrod
+
+    const updatedUser = await update({
+        id: userId,
+        first_name: values.first_name,
+        last_name: values.last_name,
+        email: values.email,
+        password: values.password
+    })
+    
+    if(!updatedUser) throw new UserUpdateError(USER_UPDATING_ERROR)
+    const token = generateTokenByEmail(updatedUser.email)
+    return {user:updatedUser,token:token}
+}
+
+const deleteByIdAndUser = async ({id: userId, user:{id}}) => {
+    if(!userId || !id ) throw new UserDeleteError(NOT_ENOUGH_DATA)
     if(userId !== id) throw new UserDeleteError(USER_DELETING_UNAUTHORIZED)
-    const userMatched = await getUserByEmailFromDB(email)
+    const userMatched = await getById(userId)
     if(!userMatched) throw new UserDeleteError(USER_NOT_FOUND)
-    if(Number(userMatched.id) !== userId) throw new UserDeleteError(USER_DELETING_UNAUTHORIZED)
+    if(userMatched.id !== userId) throw new UserDeleteError(USER_DELETING_UNAUTHORIZED)
     // check user role
     if(isUserAnAdmin(userMatched)) { 
         // user is an admin, just delete user
-        const userDeleted = await deleteUserByIdInDB(userId)
+        const userDeleted = await deleteById(userId)
         return userDeleted
     } else {
         // user is a normal one:
         // 1. delete amounts
         // 2. delete custom types
         // 3. delete user
-        const amountsDeleted = await deleteAllAmountsOfCreatorByCreatorId(userId)
+        const amountsDeleted = await deleteAllAmountsOfCreatorByCreatorIdReturnAmountsAndAccountBalance(userId)
         const customTypesDeleted = await deleteAllCustomTypesOfCreatorByCreatorId(userId)
         const userDeleted = await deleteUserByIdInDB(userId)
         return {user:userDeleted,nTypes:customTypesDeleted.length,nAmounts:amountsDeleted.length}
@@ -163,10 +190,9 @@ const deleteUserByIdAndUser = async ({id: userId, user:{id,email}}) => {
 }
 
 module.exports = {
-    createUserReturnUserAndToken,
-    getTokenAndUserByEmailAndPassword,
-    getUserByToken,
-    updateUserByIdUserAndNewValuesGetUserAndNewToken,
-    deleteUserByIdAndUser,
-
+    getByToken,
+    updateByIdAndValues,
+    deleteByIdAndUser,
+    getByEmailAndPassword,
+    register,
 }
