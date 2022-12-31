@@ -98,11 +98,14 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
     customError.statusCode = error.statusCode 
   }
 
-  console.log("Error Handling Middleware called")
-  console.log('Path: ', req.path)
-  console.log(error)
+  console.error("Error Handling Middleware called")
+  console.error('Path: ', req.path)
+  console.error(error)
 
-  return res.status(customError.statusCode).json({msg: customError.msg})
+  return res.status(customError.statusCode).json({
+    success: false,
+    message: customError.msg
+  })
 }
 
 module.exports = errorHandlerMiddleware

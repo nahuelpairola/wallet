@@ -34,7 +34,7 @@ const User = sequelize.define('users', {
             defaultValue:'user'
         },
         accountBalance:{
-            type:DataTypes.INTEGER,
+            type:DataTypes.BIGINT,
             allowNull: false,
             defaultValue: 0
         }
