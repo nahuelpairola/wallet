@@ -1,92 +1,77 @@
 const {StatusCodes} = require('http-status-codes')
 
-const { getAmountsDataByCreatorIdAndFilteringOption,
-    createAmountByValuesReturnAmountCreatedAndAccountBalance,
-        deleteAmountByIdAndCreatorIdReturnAmountAndAccountBalance,
-        updateAmountByIdCreatorIdAndNewValuesReturnAmountAndAccountBalance,
+const { getByCreatorIdAndFilteringOption,
+        create,
+        deleteByIdAndCreatorId,
+        updateByIdCreatorAndValues,
     } = require('../services/amount')
-    
-const createAmount = async (req,res) => {
-    const {
-        quantity:quantity,
-        movement:movement,
-        type:type,
-        created_at: created_at
-    } = req.body
-    const creator = req.user
 
-    const {amount,accountBalance} = await createAmountByValuesReturnAmountCreatedAndAccountBalance({
-        quantity: quantity,
-        movement: movement,
-        type: type,
-        creatorId: creator.id,
-        created_at: created_at
-    })
+const createAmount = async (req,res) => {
+    const { quantity, movement, type, created_at } = req.body
+    const amount = await create({ quantity, movement, type, creator:req.user.id, created_at })
     res.status(StatusCodes.CREATED).json({
-        user:{id:creator.id,email:creator.email},
-        accountBalance: accountBalance,
-        amountCreated: amount,
-        msg: "AMOUNT CREATED SUCCESSFUL"
+        success: true,
+        msg: "Amount created successful",
+        data: {
+            amount
+        },
     })
 }
 
 const getAmounts = async (req,res) => {
     const {
-        quantity:quantity,
-        created_at:created_at,
-        movement:movement,
-        type:type,
-        join:join, // join types or join movements
-        page:page,
-        limit:limit,
+        quantity,
+        created_at,
+        movement,
+        type,
+        join, // join types or join movements
+        page,
+        limit,
     } = req.query
     const creator = req.user
-    const filteringOption = {}
-    if(quantity) filteringOption.quantity = quantity
-    if(movement) filteringOption.movement = movement
-    if(type) filteringOption.type = type
-    if(created_at) filteringOption.created_at = created_at
-    if(join) filteringOption.join = join 
-    if(page) filteringOption.page = page
-    if(limit) filteringOption.limit = limit
-    const data = await getAmountsDataByCreatorIdAndFilteringOption({
+    const filteringOption = {quantity,created_at,movement,type,join,page,limit}
+    const data = await getByCreatorIdAndFilteringOption({
         creatorId:creator.id,
         filteringOption
     })
     res.status(StatusCodes.OK).json({
-        user:{id:creator.id,email:creator.email},
-        accountBalance:data.accountBalance,
-        pagination:data.pagination,
-        data:data.amounts,
-        msg: "AMOUNTS SEARCHING SUCCESSFUL"})
+        success: true,
+        message: "Amounts searching successful",
+        pagination: data.pagination,
+        data: {
+            accountBalance: data.accountBalance,
+            amounts: data.amounts
+        },
+    })
 }
 
 const deleteAmount = async (req,res) => {
-    const {id:amountId} = req.params
+    const {id} = req.params
     const creator = req.user
-    const {amount,accountBalance} = await deleteAmountByIdAndCreatorIdReturnAmountAndAccountBalance({amountId, creatorId:creator.id})
-    res.status(StatusCodes.OK).json({ 
-        user: {id:creator.id,email:creator.email},
-        accountBalance: accountBalance,
-        amountDeleted: amount,
-        msg: "AMOUNT DELETED SUCCESSFUL"
+    await deleteByIdAndCreatorId({id, creatorId:creator.id})
+    res.status(StatusCodes.OK).json({
+        success: true,
+        msg: "Amount deleted successful",
+        data: null
     })
 }
 
 const updateAmount = async (req,res) => {
-    const {id:amountId} = req.params
-    const {quantity:quantity, movement:movement, type:type} = req.body
+    const {id} = req.params
+    const {quantity,movement,type} = req.body
     const creator = req.user
-    const {amount, accountBalance} = await updateAmountByIdCreatorIdAndNewValuesReturnAmountAndAccountBalance({
-        amountId: amountId,
-        creatorId: creator.id,
-        newValues: {quantity, movement, type}
+    const amount = await updateByIdCreatorAndValues({
+        id: id,
+        creator: creator.id,
+        values: {quantity,movement,type}
     })
     res.status(StatusCodes.OK).json({
-        user:{id:creator.id,email:creator.email},
-        accountBalance: accountBalance,
-        amountUpdated: amount,
-        msg: "AMOUNT UPDATED SUCCESSFUL"})
+        success: true,
+        msg: "Amount updated successful",
+        data: {
+           amount: amount,
+        }
+    })
 }
 
 module.exports = {

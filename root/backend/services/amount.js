@@ -8,128 +8,67 @@ const {
 } = require('../errors/amount-errors')
 const {
     NOT_ENOUGH_DATA,
-    AMOUNT_CREATION_ERROR, 
     TYPE_NOT_FOUND,
     AMOUNT_NOT_FOUND, 
-    AMOUNT_UPDATING_ERROR, 
-    ACCESS_UNAUTHORIZED 
+    AMOUNT_UPDATING_ERROR,
+    AMOUNT_DELETING_ERROR
 } = require('../errors/error-msg-list')
 
-const {
-    createAmountInDB,
-    getAmountByIdFromDB,
-    getAmountsByCreatorIdAndFilteringOptionFromDB,
-    deleteAmountByIdInDB,
-    updateAmountByIdQuantityAndAmountTypeInDB,
-} = require('../repository/amount')
+const repository = require('../repository/amount')
+const typeServices = require('./type')
+const userServices = require('./user')
 
-const { 
-    getTypesByMovementNameAndUserId,
-} = require('./type')
-
-const {
-    resetAccountBalanceByUserId,
-    getAccountBalanceByUserId,
-    calculateNewAccountBalanceUserByUserIdAndDeletedAmount,
-    calculateNewAccountBalanceUserByUserIdAndNewAmount,
-} = require('./usersTypesAndAmounts')
-
-const getAmountsDataByCreatorIdAndFilteringOption = async ({ creatorId, filteringOption}) => {
+const getByCreatorIdAndFilteringOption = async ({ creatorId, filteringOption}) => {
     if(!creatorId) throw new AmountSearchError(NOT_ENOUGH_DATA)
-    let result = await getAmountsByCreatorIdAndFilteringOptionFromDB({creatorId, filteringOption})
-    const accountBalance = await getAccountBalanceByUserId(creatorId) // get account balance
+    let result = await repository.getByFilter({creatorId, filteringOption})
+    const accountBalance = await userServices.getAccountBalanceById(creatorId)
     return {
-        accountBalance: accountBalance,
         pagination:result.pagination,
         amounts:result.amounts,
+        accountBalance
     }
 }
 
-const getAmountById = async (amountId) => {
-    if(!amountId) throw new AmountSearchError(NOT_ENOUGH_DATA)
-    const amount = await getAmountByIdFromDB(amountId)
+const create = async ({quantity,movement,type,creator,created_at}) => {
+    if( !quantity || !movement || !type || !creator ) throw new AmountCreateError(NOT_ENOUGH_DATA)
+    // check if the type (movement and name) is a default one or its a custom one and belongs to the user
+    const typeToUse = await typeServices.getByCreatorMovementAndName(creator,movement,type)
+    if(!typeToUse) throw new AmountCreateError(TYPE_NOT_FOUND)
+    const amountToCreate = {
+        quantity,
+        amountType: typeToUse.id,
+        creator,
+    }
+    if(created_at) amountToCreate.created_at = new Date(created_at)
+    else amountToCreate.created_at = new Date()
+    const amount = await repository.create(amountToCreate)
+    await userServices.calculateAccountBalanceByIdAndNewAmount(creator,amount)
     return amount
 }
 
-const createAmountByValuesReturnAmountCreatedAndAccountBalance = async (values) => {
-    if( !values.quantity || 
-        !values.movement || 
-        !values.type ||
-        !values.creatorId ) throw new AmountCreateError(NOT_ENOUGH_DATA)
-        // check if the type (movement and name) is a default one or its a custom one and belongs to the user
-    const typeMatched = await getTypesByMovementNameAndUserId({movement:values.movement,name:values.type,userId:values.creatorId})
-    if(!typeMatched) throw new AmountCreateError(TYPE_NOT_FOUND)
-    const amountToCreate = {
-        quantity: Number(values.quantity),
-        amountType: Number(typeMatched.id),
-        creator: Number(values.creatorId),
-    }
-    if(values.created_at) amountToCreate.created_at = new Date(values.created_at)
-    else amountToCreate.created_at = new Date()
-
-    const amountCreated = await createAmountInDB(amountToCreate)
-    if(!amountCreated) throw new AmountCreateError(AMOUNT_CREATION_ERROR)
-    // calculate new account balance
-    const newAccountBalance = await calculateNewAccountBalanceUserByUserIdAndNewAmount({userId:amountCreated.creator,amount:amountCreated})
-    return {amount:amountCreated,accountBalance:newAccountBalance}
+const deleteByIdAndCreatorId = async ({id,creatorId}) => {
+    if(!id || !creatorId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
+    const amountDeleted = await repository.deleteByIdAndCreator(id,creatorId)
+    if(!amountDeleted) throw new AmountDeleteError(AMOUNT_DELETING_ERROR)
+    await userServices.calculateAccountBalanceByIdAndDeletedAmount(creatorId,amountDeleted)
+    return
 }
 
-const deleteAllAmountsOfCreatorByCreatorIdReturnAmountsAndAccountBalance = async (creatorId) => {
-    if(!creatorId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
-    const amountsOfCreator = await countAmountsByCreatorIdAndFilteringOptionFromDB(creatorId)
-    if(amountsOfCreator.length === 0) return [] // no amounts to delete
-    if(amountsOfCreator.length>1) {
-        const amountsDeleted = await Promise.all(amountsOfCreator.map(async (amount) => {
-            await deleteAmountByIdInDB(amount.id)
-        }))
-        const accountBalance = await resetAccountBalanceByUserId(creatorId)
-        return {amounts:amountsDeleted,accountBalance:accountBalance}
-    } else {
-        const amountDeleted = await deleteAmountByIdInDB(amountsOfCreator[0].id)
-        const accountBalance = await resetAccountBalanceByUserId(creatorId)
-        return {amounts:amountDeleted,accountBalance:accountBalance}
-    }
-}
-
-const deleteAmountByIdAndCreatorIdReturnAmountAndAccountBalance = async ({amountId,creatorId}) => {
-    if(!amountId || !creatorId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
-    const amountToDelete = await getAmountById(amountId)
-    if(!amountToDelete) throw new AmountDeleteError(AMOUNT_NOT_FOUND)
-    if(Number(amountToDelete.creator) !== creatorId) throw new AmountDeleteError(ACCESS_UNAUTHORIZED)   
-        const amountDeleted = await deleteAmountByIdInDB(amountId)
-        const accountBalance = await calculateNewAccountBalanceUserByUserIdAndDeletedAmount({userId:creatorId,amount:amountDeleted})
-    return {amount:amountDeleted,accountBalance}
-}
-
-const updateAmountByIdAndNewValues = async ({amountId,newValues:{quantity,amountType}}) => {
-    if(!amountId || !quantity || !amountType) throw new AmountUpdateError(NOT_ENOUGH_DATA)
-    const amountUpdated = await updateAmountByIdQuantityAndAmountTypeInDB({id:amountId,quantity,amountType})
-    if(!amountUpdated) return null
-    else return amountUpdated
-}
-
-const updateAmountByIdCreatorIdAndNewValuesReturnAmountAndAccountBalance = async ({amountId, creatorId, newValues: {quantity, movement, type}}) => {
-    if( !amountId || !creatorId || !quantity || !movement || !type) throw new ServiceError(NOT_ENOUGH_DATA)
-    const amountMatched = await getAmountById(amountId)
-    if(!amountMatched) throw new AmountUpdateError(AMOUNT_NOT_FOUND)
-    if(amountMatched.creator !== creatorId) throw new AmountUpdateError(ACCESS_UNAUTHORIZED)
-    // check if the type (movement and name) is a default one OR is a custom one
-    const newType = await getTypesByMovementNameAndUserId({movement, name: type, userId:creatorId})
+const updateByIdCreatorAndValues = async ({id,creator,values}) => {
+    if( !id || !creator || !values.quantity || !values.movement || !values.type) throw new ServiceError(NOT_ENOUGH_DATA)
+    const newType = await typeServices.getByCreatorMovementAndName(creator,values.movement,values.type)
     if(!newType) throw new AmountUpdateError(TYPE_NOT_FOUND)
-    const amountUpdated = await updateAmountByIdAndNewValues({amountId,newValues:{quantity,amountType:newType.id}})
+    const amountToUpdate = await repository.getByIdAndCreator({id,creator})
+    if(!amountToUpdate) throw new AmountUpdateError(AMOUNT_NOT_FOUND)
+    const amountUpdated = await repository.updateAmountByIdCreatorAndValues({id,creator,values:{quantity:values.quantity,amountType:newType.id}})
     if(!amountUpdated) throw new AmountUpdateError(AMOUNT_UPDATING_ERROR)
-    let accountBalance = 0.
-    if(amountUpdated.quantity !== amountMatched.quantity || amountUpdated.movement !== amountMatched.movement) {
-        await calculateNewAccountBalanceUserByUserIdAndDeletedAmount({userId:creatorId,amount:amountMatched})
-        accountBalance = await calculateNewAccountBalanceUserByUserIdAndNewAmount({userId:creatorId,amount:amountUpdated})
-    }
-    return {amount: amountUpdated, accountBalance: accountBalance}
+    await userServices.calculateAccountBalanceByIdAndUpdatedAmount(creator,amountToUpdate,amountUpdated)
+    return amountUpdated
 }
 
 module.exports = {
-    getAmountsDataByCreatorIdAndFilteringOption,
-    createAmountByValuesReturnAmountCreatedAndAccountBalance,
-    deleteAmountByIdAndCreatorIdReturnAmountAndAccountBalance,
-    deleteAllAmountsOfCreatorByCreatorIdReturnAmountsAndAccountBalance,
-    updateAmountByIdCreatorIdAndNewValuesReturnAmountAndAccountBalance,
+    getByCreatorIdAndFilteringOption,
+    create,
+    deleteByIdAndCreatorId,
+    updateByIdCreatorAndValues,
 }

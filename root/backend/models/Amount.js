@@ -8,7 +8,7 @@ const Amount = sequelize.define('amounts', {
             primaryKey: true
         },
         quantity:{
-            type: DataTypes.NUMBER(19,2).UNSIGNED,
+            type:DataTypes.INTEGER,
             allowNull:false
         },
         amountType:{

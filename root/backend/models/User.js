@@ -34,9 +34,9 @@ const User = sequelize.define('users', {
             defaultValue:'user'
         },
         accountBalance:{
-            type:DataTypes.NUMBER(19,2),
+            type:DataTypes.INTEGER,
             allowNull: false,
-            defaultValue: 0.0
+            defaultValue: 0
         }
     }, { timestamps: false }
 )

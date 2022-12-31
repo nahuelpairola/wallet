@@ -1,13 +1,10 @@
 const {StatusCodes} = require('http-status-codes')
-const {NotFoundError} = require('../errors')
-
-const { TYPE_NOT_FOUND } = require('../errors/error-msg-list')
 
 const {
     createNewType,
-    getTypesByCreator,
+    getAllByCreator,
     deleteByIdAndCreator,
-    updateTypeByIdAndUser,
+    updateByIdCreatorAndName,
     } = require('../services/type')
 
 const createType = async (req, res) => {
@@ -31,7 +28,7 @@ const createType = async (req, res) => {
 
 const getTypes = async (req,res) => {
     const user = req.user
-    const types = await getTypesByCreator(user.id)
+    const types = await getAllByCreator(user.id)
     res.status(StatusCodes.OK).json({
         success: true,
         message: 'Types searched successful',
@@ -54,16 +51,21 @@ const deleteType = async (req,res) => {
 }
 
 const updateType = async (req, res) => {
-    const { id: idOfTypeToUpdate } = req.params
-    const { name: nameOfTypeToUpdate, movement: movementOfTypeToUpdate } = req.body
+    const { id: id } = req.params
+    const { name: name } = req.body
     const user = req.user
-    const updatedType = await updateTypeByIdAndUser({
-        id:idOfTypeToUpdate,
-        name:nameOfTypeToUpdate,
-        movement:movementOfTypeToUpdate,
-        user:user
+    const updatedType = await updateByIdCreatorAndName({
+        id:id,
+        creator:user.id,
+        name:name
     })
-    res.status(StatusCodes.OK).json({ user: {id: user.id, email: user.email}, updatedType: updatedType, msg: "TYPE UPDATED SUCCESSFUL"})
+    res.status(StatusCodes.OK).json({
+        success: true,
+        message: 'Type updated successful',
+        data:{
+            type: updatedType
+        }
+    })
 }
 
 module.exports = {

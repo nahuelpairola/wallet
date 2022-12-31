@@ -1,7 +1,7 @@
 
 const { Op } = require('sequelize')
 const {AmountCreateError, AmountSearchError, AmountUpdateError, AmountDeleteError} = require('../errors/amount-errors')
-const { NOT_ENOUGH_DATA } = require('../errors/error-msg-list')
+const { NOT_ENOUGH_DATA, AMOUNT_UPDATING_ERROR, AMOUNT_NOT_FOUND } = require('../errors/error-msg-list')
 const { Amount, User, Type} = require('../models')
 const { sequelize } = require('../db/connect')
 
@@ -25,24 +25,24 @@ const renameSingleAmount = (amount) => {
         amount.default = amount['type.default']
         delete amount['type.default']
     }
-    amount.quantity = Number(amount.quantity)        
+    amount.quantity = Number(amount.quantity)  
     return amount
 }
 
-const createAmountInDB = async (amountToCreate) => {
+const create = async (amountToCreate) => {
     if( !amountToCreate.quantity || 
         !amountToCreate.amountType || 
         !amountToCreate.creator || 
         !amountToCreate.created_at) throw new AmountCreateError(NOT_ENOUGH_DATA)
     const amount = await Amount.create(amountToCreate)
-    const amountCreated = await getAmountByIdFromDB(amount.dataValues.id)
-    return amountCreated
+    return await getByIdAndCreator({id:amount.id,creator:amountToCreate.creator})
 }
 
-const getAmountByIdFromDB = async (amountId) => {
-    if(!amountId) throw new AmountSearchError(NOT_ENOUGH_DATA)
-    const amount = await Amount.findByPk(amountId,{
-        attributes: { exclude: ['amountType'] },
+const getByIdAndCreator = async ({id,creator}) => {
+    if(!id || !creator) throw new AmountSearchError(NOT_ENOUGH_DATA)
+    const amount = await Amount.findOne({
+        where:{id,creator},
+        attributes: { exclude: ['amountType']},
         raw:true,
         include: { 
             all: true,
@@ -105,10 +105,11 @@ const getFindAllOptionByWhereForAmountWhereForTypeAndJoin = ({whereForAmount,whe
     if(!join) {
         option.attributes = [
             ['id','id'], // get amount id
+            ['quantity','quantity'], // get amount quantity
             ['creator','creator'], // get amount creator
             ['created_at','created_at'], // get amount created_at
-            [sequelize.literal('"type"."id"'), "typeId"], // rename type.id to typeId
-            [sequelize.literal('"type"."name"'), "type"], // the type name will be type
+            [sequelize.literal('"type"."id"'), "typeId"], // type.id as typeId
+            [sequelize.literal('"type"."name"'), "type"], // the types name will be type
             [sequelize.literal('"type"."movement"'), "movement"], // type movement as movement
             [sequelize.literal('"type"."default"'), "default"], // type default as default
         ]
@@ -161,7 +162,7 @@ const getPaginationByLimitActualPageAndCountAmounts = ({limit,actualPage,countAm
     return pagination
 }
 
-const getAmountsByCreatorIdAndFilteringOptionFromDB = async ({creatorId,filteringOption}) => {
+const getByFilter = async ({creatorId,filteringOption}) => { // filter:{creatorId,filteringOption}
     if(!creatorId) throw new AmountSearchError(NOT_ENOUGH_DATA)
     const whereForAmount = getWhereForAmountByCreatorIdAndFilteringOption({creatorId,filteringOption})
     const whereForType = getWhereForTypeByFilteringOption(filteringOption)
@@ -190,36 +191,36 @@ const getAmountsByCreatorIdAndFilteringOptionFromDB = async ({creatorId,filterin
     }
 }
 
-const deleteAmountByIdInDB = async (amountId) => {
-    if(!amountId) throw new AmountDeleteError(NOT_ENOUGH_DATA)
-    const amountDeleted = await getAmountByIdFromDB(amountId)
-    const where = {id:amountId}
-    await Amount.destroy({where}) // destroy amount in db
-    return amountDeleted
+const deleteByIdAndCreator = async (id,creator) => {
+    if(!creator || !id) throw new AmountDeleteError(NOT_ENOUGH_DATA)
+    const where = {id,creator}
+    const amount = await getByIdAndCreator({id,creator})
+    if(!amount) throw AmountDeleteError(AMOUNT_NOT_FOUND) // amount can not be deleted
+    const result = await Amount.destroy({where}) // destroy amount in db
+    return (result === 1 ? amount : null)
 }
 
-const updateAmountByIdQuantityAndAmountTypeInDB = async (values) => { // values contains: amount id, quantity and type id
-    if( !values.id || 
+const updateAmountByIdCreatorAndValues = async ({id,creator,values}) => { // values contains: amount id, quantity and type id
+    if( !id || !creator ||
         !values.quantity || 
         !values.amountType) throw new AmountUpdateError(NOT_ENOUGH_DATA)
-    const where = {id: values.id}
+    const where = {id,creator}
     const newValues = {
         quantity:values.quantity,
         amountType:values.amountType
     }
-    await Amount.update(newValues,{where})
-    const renamedAmount = await getAmountByIdFromDB(values.id)
-    return renamedAmount
+    const result = await Amount.update(newValues,{where})
+    if(result[0] !== 1) throw new AmountUpdateError(AMOUNT_UPDATING_ERROR)
+    return await getByIdAndCreator({id,creator})
 }
 
 module.exports = {
-    createAmountInDB,
-    getAmountByIdFromDB,
+    create,
+    getByIdAndCreator,
     isAnAmountUsingThisTypeId,
-    // countAmountsByCreatorIdAndFilteringOptionFromDB,
-    getAmountsByCreatorIdAndFilteringOptionFromDB,
-    deleteAmountByIdInDB,
-    updateAmountByIdQuantityAndAmountTypeInDB,
+    getByFilter,
+    deleteByIdAndCreator,
+    updateAmountByIdCreatorAndValues,
 }
 
 

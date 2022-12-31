@@ -23,7 +23,7 @@ const registration = async (req, res) => {
     if(!first_name || !last_name || !email || !password) throw new BadRequestError(PROVIDE_ALL_DATA)
     const userData = {first_name, last_name, email, password}
     if(role) userData.role = role
-    const {user:user,token:token} = await register(userData)
+    const {user,token} = await register(userData)
     res.status(StatusCodes.CREATED).json({
         success: true,
         message: "Registration successful",

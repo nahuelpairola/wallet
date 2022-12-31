@@ -20,57 +20,48 @@ const getByEmail = async (email) => { // EX GETUSERBYEMAILFROMDB
     return renameUser(user)
 }
 
-const getById = async (userId) => {
-    if(!userId) throw new UserSearchError(NOT_ENOUGH_DATA) 
-    const user = await User.findByPk(userId,{raw:true})
+const getById = async (id) => {
+    if(!id) throw new UserSearchError(NOT_ENOUGH_DATA) 
+    const user = await User.findByPk(id,{raw:true})
     if(user) return renameUser(user)
     else return null
 }
 
-const create = async (user) => {
-    if( !user.first_name||
-        !user.last_name||
-        !user.email||
-        !user.password||
-        !user.created_at) throw new UserCreateError(NOT_ENOUGH_DATA)
-    const result = await User.create(user)
+const create = async (first_name,last_name,email,password,created_at) => {
+    if( !first_name || !last_name || !email || !password || !created_at) throw new UserCreateError(NOT_ENOUGH_DATA)
+    const result = await User.create({first_name,last_name,email,password,created_at})
     delete result.password
     return renameUser(result)
 }
 
-const deleteById = async (userId) => {
-    if(!userId) throw new UserDeleteError(NOT_ENOUGH_DATA)
-    const where = {id: userId}
-    const userDeleted = await User.findByPk(userId,{raw:true})
+const deleteById = async (id) => {
+    if(!id) throw new UserDeleteError(NOT_ENOUGH_DATA)
+    const userDeleted = await User.findByPk(id,{raw:true})
+    const where = {id}
     await User.destroy({where})
     return renameUser(userDeleted)
 }
 
-const update = async (values) => { 
-    if( !values.id ||
-        !values.first_name || 
-        !values.last_name || 
-        !values.email ||
-        !values.password) throw new UserUpdateError(NOT_ENOUGH_DATA)
-    const where = { id:values.id }
-    const newValues = {
-        first_name: values.first_name, 
-        last_name: values.last_name,
-        email:values.email,
-        password:values.password
-    }
+const updatePersonalData = async (id,first_name,last_name,email,password) => { 
+    if( !id ||
+        !first_name || 
+        !last_name || 
+        !email ||
+        !password) throw new UserUpdateError(NOT_ENOUGH_DATA)
+    const where = { id }
+    const newValues = { first_name, last_name, email, password }
     await User.update(newValues,{where})
-    const userUpdated = await User.findByPk(values.id,{raw:true})
+    const userUpdated = await User.findByPk(id,{raw:true})
     delete userUpdated.password // delete password element
     return renameUser(userUpdated)
 }
 
-const updateAccountBalanceById = async ({userId,accountBalance}) => {
-    if(!userId || typeof accountBalance === 'undefined') throw new UserUpdateError(NOT_ENOUGH_DATA)
-    const where = {id:userId}
-    await User.update({accountBalance:accountBalance},{where})
-    const userUpdated = await User.findByPk(userId)
-    return renameUser(userUpdated)
+const updateAccountBalance = async (id,accountBalance) => { 
+    if( !id || typeof accountBalance === 'undefined' ) throw new UserUpdateError(NOT_ENOUGH_DATA)
+    await User.update({accountBalance},{where:{id}})
+    const userUpdated = await User.findByPk(id,{raw:true})
+    delete userUpdated.password // delete password element
+    return renameUser(userUpdated).accountBalance
 }
 
 module.exports = {
@@ -78,6 +69,6 @@ module.exports = {
     getByEmail,
     getById,
     deleteById,
-    update,
-    updateAccountBalanceById,
+    updatePersonalData,
+    updateAccountBalance,
 }

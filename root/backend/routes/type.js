@@ -3,7 +3,7 @@ const router = express.Router()
 
 // validators
 const validator = require('express-joi-validation').createValidator({})
-const {NewType,TypeId} = require('../validators-sanitizers/type')
+const {NewType,TypeId,UpdateType} = require('../validators-sanitizers/type')
 
 const {
     createType,
@@ -14,6 +14,8 @@ const {
 
 router.route('/').get(getTypes)
 router.route('/').post(validator.body(NewType), createType)
-router.route('/:id').patch(validator.params(TypeId),updateType).delete(validator.params(TypeId),deleteType)
+router.route('/:id')
+    .patch(validator.params(TypeId),validator.body(UpdateType),updateType)
+    .delete(validator.params(TypeId),deleteType)
 
 module.exports = router

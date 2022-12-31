@@ -34,9 +34,10 @@ const creationDateMethod = (created_at,helper) => {
 }
 
 const AmountBody = Joi.object({
-  quantity: Joi.number().positive().precision(2).required(),
+  quantity: Joi.number().positive().precision(0).required(),
   movement: Joi.string().valid('input','output').required(),
   type: Joi.string().min(3).max(15).required(),
+  // type: Joi.number().integer().positive().required(),
   created_at: Joi.string().custom(creationDateMethod,'created_at validator').optional()
 }).required()
 

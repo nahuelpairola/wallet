@@ -2,22 +2,7 @@
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
 
-const { 
-    create,
-    update,
-    updateUserAccountBalanceByUserIdAndNewAccountBalanceInDB,
-    getById,
-    getByEmail,
-    deleteById,
-} = require('../repository/user')
-
-const {
-    deleteAllAmountsOfCreatorByCreatorIdReturnAmountsAndAccountBalance
-} = require('./amount')
-
-const { 
-    deleteAllCustomTypesOfCreatorByCreatorId
-} = require('./type')
+const repository = require('../repository/user')
 
 const {
     isUserAnAdmin
@@ -62,7 +47,7 @@ const deletePassword = (user) => {
 
 const getByEmailAndPassword = async ({email,password}) => {
     if(!email || !password) throw new UserSearchError(NOT_ENOUGH_DATA)
-    const userMatched = await getByEmail(email)
+    const userMatched = await repository.getByEmail(email)
     if(!userMatched) throw new UserNotFoundError(USER_NOT_FOUND)
     // check password
     const isMatch = await bcrypt.compare(password, userMatched.password)
@@ -79,7 +64,7 @@ const getByEmailAndPassword = async ({email,password}) => {
 
 const getByToken = async (token) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET)    
-    const userMatched = await getByEmail(payload.email)
+    const userMatched = await repository.getByEmail(payload.email)
     if(!userMatched) throw new UserSearchError(TOKEN_UNAUTHORIZED)
     return deletePassword(userMatched)
 }
@@ -90,7 +75,7 @@ const register = async (user) => {
         !user.email ||
         !user.password) throw new UserCreateError(NOT_ENOUGH_DATA)
     // check if emails user exists
-    const userMatched = await getByEmail(user.email)
+    const userMatched = await repository.getByEmail(user.email)
     if(userMatched) throw new UserCreateError(USER_ALREADY_CREATED)
     user.created_at = new Date() // add time when it was created
     user.password = await generatePassword(user.password)
@@ -169,13 +154,13 @@ const updateByIdAndValues = async ({id: userId, values: values}) => {
 const deleteByIdAndUser = async ({id: userId, user:{id}}) => {
     if(!userId || !id ) throw new UserDeleteError(NOT_ENOUGH_DATA)
     if(userId !== id) throw new UserDeleteError(USER_DELETING_UNAUTHORIZED)
-    const userMatched = await getById(userId)
+    const userMatched = await repository.getById(userId)
     if(!userMatched) throw new UserDeleteError(USER_NOT_FOUND)
     if(userMatched.id !== userId) throw new UserDeleteError(USER_DELETING_UNAUTHORIZED)
     // check user role
     if(isUserAnAdmin(userMatched)) { 
         // user is an admin, just delete user
-        const userDeleted = await deleteById(userId)
+        const userDeleted = await repository.deleteById(userId)
         return userDeleted
     } else {
         // user is a normal one:
@@ -189,10 +174,50 @@ const deleteByIdAndUser = async ({id: userId, user:{id}}) => {
     }
 }
 
+const getAccountBalanceById = async (id) => {
+    if(!id) throw new UserSearchError(NOT_ENOUGH_DATA)
+    const user = await repository.getById(id)
+    if(!user) UserNotFoundError(USER_NOT_FOUND)
+    return user.accountBalance
+}
+
+const calculateAccountBalanceByIdAndNewAmount = async (id,amount) => {
+    if(!id || !amount.quantity || !amount.movement) UserUpdateError(NOT_ENOUGH_DATA)
+    let accountBalance = await getAccountBalanceById(id)
+    if(amount.movement === 'input') accountBalance += amount.quantity
+    else accountBalance -= amount.quantity
+    return await repository.updateAccountBalance(id,accountBalance)
+}
+
+const calculateAccountBalanceByIdAndDeletedAmount = async (id,amount) => {
+    if(!id || !amount.quantity || !amount.movement) UserUpdateError(NOT_ENOUGH_DATA)
+    let accountBalance = await getAccountBalanceById(id)
+    if(amount.movement === 'input') accountBalance -= amount.quantity
+    else accountBalance += amount.quantity
+    return await repository.updateAccountBalance(id,accountBalance)
+}
+
+const calculateAccountBalanceByIdAndUpdatedAmount = async (id,amountToUpdate,amountUpdated) => {
+    if(!id || !amountToUpdate.quantity || !amountToUpdate.movement || !amountUpdated.quantity || !amountUpdated.movement) UserUpdateError(NOT_ENOUGH_DATA)
+    let accountBalance = await getAccountBalanceById(id)
+    
+    if(amountToUpdate.movement === 'input') accountBalance -= amountToUpdate.quantity
+    else accountBalance += amountToUpdate.quantity
+    
+    if(amountUpdated.movement === 'input') accountBalance += amountUpdated.quantity
+    else accountBalance -= amountUpdated.quantity
+    
+    return await repository.updateAccountBalance(id,accountBalance)
+}
+
 module.exports = {
     getByToken,
     updateByIdAndValues,
     deleteByIdAndUser,
     getByEmailAndPassword,
     register,
+    getAccountBalanceById,
+    calculateAccountBalanceByIdAndNewAmount,
+    calculateAccountBalanceByIdAndDeletedAmount,
+    calculateAccountBalanceByIdAndUpdatedAmount
 }
