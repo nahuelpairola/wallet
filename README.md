@@ -4,13 +4,9 @@
 
 ### Introduction
 
-**wallet** is personal project to manage personal finance. The [API](root/backend/) is enable users to create, search, update and delete easily their financial movements.
+**wallet** is a personal project to manage personal finance. The [API](root/backend/) allow users create, search, update and delete easily their financial movements.
 
-Its deployed on **fly.io**, you can use it (see )
-
-### Documentation
-
-You can find the documentation in the next [link](https://app.swaggerhub.com/apis/nahuelpairola/wallet/1.0.0#/info)
+The functionallity of a previous version you can use it [here](https://app.swaggerhub.com/apis/nahuelpairola/wallet/1.0.0#/info)
 
 ### Step by Step: run **wallet** in your machine
 
