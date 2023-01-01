@@ -27,7 +27,7 @@
     "nodemon": "^2.0.16"
   },
   "scripts": {
-    "start": "nodemon app.js"
+    "start": "node app.js"
   },
   "author": "nahuelpairola@gmail.com",
   "license": "UNLICENSED",

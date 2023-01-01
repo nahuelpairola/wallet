@@ -25,7 +25,7 @@ const renameSingleAmount = (amount) => {
         amount.default = amount['type.default']
         delete amount['type.default']
     }
-    amount.quantity = Number(amount.quantity)  
+    // amount.quantity = Number(amount.quantity)
     return amount
 }
 

@@ -8,7 +8,7 @@ const {
 } = require('../errors/user-errors')
 
 const renameUser = (user) => {
-    user.accountBalance = Number(user.accountBalance)
+    // user.accountBalance = Number(user.accountBalance)
     return user
 }
 
