@@ -18,12 +18,12 @@ const updateUser = async (req,res) => {
 
 const deleteUser = async (req,res) => {
     const {id} = req.params
-    const {user:deletedUser,nTypes:nTypes,nAmounts:nAmounts} = await deleteByIdAndUser(id, req.user.id)
+    const {user,nTypes,nAmounts} = await deleteByIdAndUser(id, req.user.id)
     res.status(StatusCodes.OK).json({
         success: true,
         message: "User deleted successful",
         data: {
-            user:deletedUser,
+            user:user,
             nTypes:nTypes,
             nAmounts:nAmounts,
         }

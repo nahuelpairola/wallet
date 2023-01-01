@@ -1,7 +1,7 @@
 const {StatusCodes} = require('http-status-codes')
 
 const {
-    createNewType,
+    create,
     getAllByCreator,
     deleteByIdAndCreator,
     updateByIdCreatorAndName,
@@ -16,7 +16,7 @@ const createType = async (req, res) => {
         creator:creator.id,
         default: creator.role === 'admin' ? true : false
     }
-    const createdType = await createNewType(type)
+    const createdType = await create(type)
     res.status(StatusCodes.CREATED).json({
         success: true,
         message: 'Type created successful',

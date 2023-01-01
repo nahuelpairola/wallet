@@ -10,6 +10,11 @@ const getAccountBalanceById = async (id) => {
     return user.accountBalance
 }
 
+const resetAccountBalanceById = async (id) => {
+    if(!id) throw new UserSearchError(NOT_ENOUGH_DATA)
+    await require('./user').updateAccountBalanceById(id,0)
+}
+
 const calculateAccountBalanceByIdAndNewAmount = async (id,amount) => {
     if(!id || !amount.quantity || !amount.movement) UserUpdateError(NOT_ENOUGH_DATA)
     let accountBalance = await getAccountBalanceById(id)
@@ -43,3 +48,4 @@ module.exports.getAccountBalanceById = getAccountBalanceById
 module.exports.calculateAccountBalanceByIdAndDeletedAmount = calculateAccountBalanceByIdAndDeletedAmount
 module.exports.calculateAccountBalanceByIdAndNewAmount = calculateAccountBalanceByIdAndNewAmount
 module.exports.calculateAccountBalanceByIdAndUpdatedAmount = calculateAccountBalanceByIdAndUpdatedAmount
+module.exports.resetAccountBalanceById = resetAccountBalanceById

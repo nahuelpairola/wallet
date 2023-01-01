@@ -76,16 +76,16 @@ const register = async (user) => {
     if(await repository.getByEmail(user.email)) throw new UserCreateError(USER_ALREADY_CREATED)
     user.created_at = new Date() // add time when it was created
     user.password = await generatePassword(user.password)
-    const userCreated = await create({ // store in db
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        password: user.password,
-        created_at: user.created_at,
-        role: user.role
-    })
+    const userCreated = await repository.create( // store in db
+        user.first_name,
+        user.last_name,
+        user.email,
+        user.password,
+        user.created_at,
+        user.role
+    )
     const token = generateTokenByEmail(userCreated.email)
-    return ( { user:deletePassword(user), token:token } )
+    return ( { user:userCreated, token:token } )
 }
 
 const updateByIdAndValues = async (userId, values) => {
@@ -134,7 +134,7 @@ const deleteByIdAndUser = async (userId, id) => {
         // 3. delete user
         const nAmounts = await amountServices.deleteAllByCreator(userId)
         const nTypes = await typeServices.deleteAllByCreator(userId)
-        const userDeleted = await deleteUserByIdInDB(userId)
+        const userDeleted = await repository.deleteById(userId)
         return {user:userDeleted,nTypes,nAmounts}
     }
 }

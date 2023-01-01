@@ -18,7 +18,8 @@ const {
   TYPE_DELETE_UNAUTHORIZED,
   TYPE_NOT_FOUND,
   NOT_ENOUGH_DATA,
-  ACCESS_UNAUTHORIZED
+  ACCESS_UNAUTHORIZED,
+  TOKEN_UNAUTHORIZED
 } = require('../errors/error-msg-list')
  
 const errorHandlerMiddleware = async (error, req, res, next) => {
@@ -46,6 +47,10 @@ const errorHandlerMiddleware = async (error, req, res, next) => {
     customError.statusCode = error.statusCode 
   }
   if(error instanceof UserSearchError && error.message === PASSWORD_INCORRECT) {
+    error.statusCode = StatusCodes.UNAUTHORIZED
+    customError.statusCode = error.statusCode
+  }
+  if(error instanceof UserSearchError && error.message===TOKEN_UNAUTHORIZED){
     error.statusCode = StatusCodes.UNAUTHORIZED
     customError.statusCode = error.statusCode
   }

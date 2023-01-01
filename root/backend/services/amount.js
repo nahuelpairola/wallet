@@ -68,6 +68,7 @@ const updateByIdCreatorAndValues = async ({id,creator,values}) => {
 
 const deleteAllByCreator = async (creator) => {
     if(!creator) throw new AmountDeleteError(NOT_ENOUGH_DATA)
+    await userServices.resetAccountBalanceById(creator)
     return await repository.deleteAllByCreator(creator)
 }
 

@@ -21,7 +21,7 @@ const repository = require('../repository/type')
 const create = async (type) => {
     if(await repository.exists(type.movement,type.name,type.creator)) throw new TypeCreateError(TYPE_ALREADY_CREATED)
     type.created_at = new Date() // add created_at in type to create
-    return await create(type)
+    return await repository.create(type.movement,type.name,type.created_at,type.creator,type.default)
 }
 
 const getByIdAndCreator = async (id,creator) => {

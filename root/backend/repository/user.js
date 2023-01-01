@@ -27,16 +27,17 @@ const getById = async (id) => {
     else return null
 }
 
-const create = async (first_name,last_name,email,password,created_at) => {
+const create = async (first_name,last_name,email,password,created_at,role) => {
     if( !first_name || !last_name || !email || !password || !created_at) throw new UserCreateError(NOT_ENOUGH_DATA)
-    const result = await User.create({first_name,last_name,email,password,created_at})
-    delete result.password
+    const result = await User.create({first_name,last_name,email,password,created_at,role})
+    delete result.dataValues.password
     return renameUser(result)
 }
 
 const deleteById = async (id) => {
     if(!id) throw new UserDeleteError(NOT_ENOUGH_DATA)
     const userDeleted = await User.findByPk(id,{raw:true})
+    delete userDeleted.password
     const where = {id}
     await User.destroy({where})
     return renameUser(userDeleted)
