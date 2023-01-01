@@ -1,70 +1,45 @@
 // file to avoid circular dependencies
 
 const { NOT_ENOUGH_DATA, USER_NOT_FOUND } = require('../errors/error-msg-list')
-const { UserUpdateError, UserSearchError } = require('../errors/user-errors')
-const {isAnAmountUsingThisTypeId} = require('../repository/amount')
-const { getUserByIdFromDB, updateUserAccountBalanceByUserIdAndNewAccountBalanceInDB } = require('../repository/user')
+const { UserSearchError, UserNotFoundError, UserUpdateError } = require('../errors/user-errors')
 
-const isUserAnAdmin = (user) => {
-    if(!user.role) throw new UserSearchError(PROVIDE_ALL_DATA)
-    if(user.role === 'admin') return true
-    else return false
+const getAccountBalanceById = async (id) => {
+    if(!id) throw new UserSearchError(NOT_ENOUGH_DATA)
+    const user = await require('./user').getById(id)
+    if(!user) UserNotFoundError(USER_NOT_FOUND)
+    return user.accountBalance
 }
 
-const isTypeIdInAmounts = async (typeId) => {
-    if(!typeId) throw new ServiceError(NOT_ENOUGH_DATA)
-    if(await isAnAmountUsingThisTypeId(typeId)) return true
-    return false
+const calculateAccountBalanceByIdAndNewAmount = async (id,amount) => {
+    if(!id || !amount.quantity || !amount.movement) UserUpdateError(NOT_ENOUGH_DATA)
+    let accountBalance = await getAccountBalanceById(id)
+    if(amount.movement === 'input') accountBalance += amount.quantity
+    else accountBalance -= amount.quantity
+    return await require('./user').updateAccountBalanceById(id,accountBalance)
 }
 
-const calculateNewAccountBalanceUserByUserIdAndNewAmount = async ({userId,amount}) => {
-    if(!userId || !amount ) throw new UserUpdateError(NOT_ENOUGH_DATA)
-    const user = await getUserByIdFromDB(userId)
-    let newAccountBalance = 0.
-    if(amount.movement === 'input') {
-        newAccountBalance = user.accountBalance + amount.quantity
-    } else { // movement = output
-        newAccountBalance = user.accountBalance - amount.quantity
-    }    
-    const updatedUser = await updateUserAccountBalanceByUserIdAndNewAccountBalanceInDB({userId,accountBalance:newAccountBalance})
-    return updatedUser.accountBalance
+const calculateAccountBalanceByIdAndDeletedAmount = async (id,amount) => {
+    if(!id || !amount.quantity || !amount.movement) UserUpdateError(NOT_ENOUGH_DATA)
+    let accountBalance = await getAccountBalanceById(id)
+    if(amount.movement === 'input') accountBalance -= amount.quantity
+    else accountBalance += amount.quantity
+    return await require('./user').updateAccountBalanceById(id,accountBalance)
 }
 
-const calculateNewAccountBalanceUserByUserIdAndDeletedAmount = async ({userId,amount}) => {
-    if(!userId || !amount ) throw new UserUpdateError(NOT_ENOUGH_DATA)
-    const user = await getUserByIdFromDB(userId)
-    let newAccountBalance = 0.
-    if(amount.movement === 'input') {
-        newAccountBalance = user.accountBalance - amount.quantity
-    } else { // movement = output
-        newAccountBalance = user.accountBalance + amount.quantity
-    }
-    const updatedUser = await updateUserAccountBalanceByUserIdAndNewAccountBalanceInDB({userId,accountBalance:newAccountBalance})
-    return updatedUser.accountBalance
+const calculateAccountBalanceByIdAndUpdatedAmount = async (id,amountToUpdate,amountUpdated) => {
+    if(!id || !amountToUpdate.quantity || !amountToUpdate.movement || !amountUpdated.quantity || !amountUpdated.movement) UserUpdateError(NOT_ENOUGH_DATA)
+    let accountBalance = await getAccountBalanceById(id)
+    
+    if(amountToUpdate.movement === 'input') accountBalance -= amountToUpdate.quantity
+    else accountBalance += amountToUpdate.quantity
+    
+    if(amountUpdated.movement === 'input') accountBalance += amountUpdated.quantity
+    else accountBalance -= amountUpdated.quantity
+    
+    return await require('./user').updateAccountBalanceById(id,accountBalance)
 }
 
-const getAccountBalanceByUserId = async (userId) => {
-    if(!userId) throw new UserSearchError(NOT_ENOUGH_DATA)
-    const user = await getUserByIdFromDB(userId)
-    if(!user) throw new UserSearchError(USER_NOT_FOUND)
-    else return user.accountBalance
-}
-
-const resetAccountBalanceByUserId = async (userId) => {
-    if(!userId) throw new UserUpdateError(NOT_ENOUGH_DATA)
-    const user = await getUserByIdFromDB(userId)
-    if(!user) throw new UserSearchError(USER_NOT_FOUND)
-    const newAccountBalance = 0.
-    const updatedUser = await updateUserAccountBalanceByUserIdAndNewAccountBalanceInDB({userId,accountBalance:newAccountBalance})
-    return updatedUser.accountBalance
-}
-
-
-module.exports = {
-    isUserAnAdmin,
-    isTypeIdInAmounts,
-    calculateNewAccountBalanceUserByUserIdAndNewAmount,
-    calculateNewAccountBalanceUserByUserIdAndDeletedAmount,
-    getAccountBalanceByUserId,
-    resetAccountBalanceByUserId,
-}
+module.exports.getAccountBalanceById = getAccountBalanceById
+module.exports.calculateAccountBalanceByIdAndDeletedAmount = calculateAccountBalanceByIdAndDeletedAmount
+module.exports.calculateAccountBalanceByIdAndNewAmount = calculateAccountBalanceByIdAndNewAmount
+module.exports.calculateAccountBalanceByIdAndUpdatedAmount = calculateAccountBalanceByIdAndUpdatedAmount

@@ -200,6 +200,12 @@ const deleteByIdAndCreator = async (id,creator) => {
     return (result === 1 ? amount : null)
 }
 
+const deleteAllByCreator = async (creator) => {
+    if(!creator) throw new AmountDeleteError(NOT_ENOUGH_DATA)
+    const result = await Amount.destroy({where:{creator}})
+    return result
+}
+
 const updateAmountByIdCreatorAndValues = async ({id,creator,values}) => { // values contains: amount id, quantity and type id
     if( !id || !creator ||
         !values.quantity || 
@@ -220,6 +226,7 @@ module.exports = {
     isAnAmountUsingThisTypeId,
     getByFilter,
     deleteByIdAndCreator,
+    deleteAllByCreator,
     updateAmountByIdCreatorAndValues,
 }
 

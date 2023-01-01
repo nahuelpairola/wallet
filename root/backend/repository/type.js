@@ -59,6 +59,16 @@ const deleteByIdAndCreatorIfNotUsed = async (id,creator) => {
     return (result[1].rowCount === 1 ? true : false)
 }
 
+const deleteAllByCreator = async (creator) => {
+    if(!creator) throw new TypeDeleteError(NOT_ENOUGH_DATA)
+    const result = await sequelize.query(
+        `DELETE FROM types 
+        WHERE (types.creator = ${creator})
+        AND NOT (EXISTS 
+            (SELECT * FROM amounts WHERE "creator" = ${creator}))`)
+    return result[1].rowCount
+}
+
 const updateByIdCreatorIdAndName = async (id,creator,name) => {
     if(!id || !creator || !name) throw new TypeUpdateError(NOT_ENOUGH_DATA)
     const result = await Type.update({name},{where:{id,creator}})
@@ -88,5 +98,6 @@ module.exports = {
     getById,
     getByCreator,
     deleteByIdAndCreatorIfNotUsed,
+    deleteAllByCreator,
     getByCreatorMovementAndName
 }

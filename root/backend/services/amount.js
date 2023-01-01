@@ -16,7 +16,7 @@ const {
 
 const repository = require('../repository/amount')
 const typeServices = require('./type')
-const userServices = require('./user')
+const userServices = require('./usersTypesAndAmounts')
 
 const getByCreatorIdAndFilteringOption = async ({ creatorId, filteringOption}) => {
     if(!creatorId) throw new AmountSearchError(NOT_ENOUGH_DATA)
@@ -66,9 +66,15 @@ const updateByIdCreatorAndValues = async ({id,creator,values}) => {
     return amountUpdated
 }
 
+const deleteAllByCreator = async (creator) => {
+    if(!creator) throw new AmountDeleteError(NOT_ENOUGH_DATA)
+    return await repository.deleteAllByCreator(creator)
+}
+
 module.exports = {
     getByCreatorIdAndFilteringOption,
     create,
     deleteByIdAndCreatorId,
+    deleteAllByCreator,
     updateByIdCreatorAndValues,
 }

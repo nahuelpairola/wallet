@@ -12,7 +12,7 @@ const renameUser = (user) => {
     return user
 }
 
-const getByEmail = async (email) => { // EX GETUSERBYEMAILFROMDB
+const getByEmail = async (email) => { 
     if(!email) throw new UserSearchError(NOT_ENOUGH_DATA)
     const where = {email:email}
     const user = await User.findOne({where,raw:true})

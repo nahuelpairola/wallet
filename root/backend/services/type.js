@@ -18,13 +18,6 @@ const {
 
 const repository = require('../repository/type')
 
-const { isTypeIdInAmounts } = require('./usersTypesAndAmounts')
-
-const isUsedInAmounts = async (typeId) => {
-    if(await isTypeIdInAmounts(typeId)) return true
-    return false
-}
-
 const create = async (type) => {
     if(await repository.exists(type.movement,type.name,type.creator)) throw new TypeCreateError(TYPE_ALREADY_CREATED)
     type.created_at = new Date() // add created_at in type to create
@@ -58,6 +51,10 @@ const deleteByIdAndCreator = async ({id,creator}) => {
     else throw new TypeDeleteError(TYPE_DELETE_UNAUTHORIZED)
 }
 
+const deleteAllByCreator = async (creator) => {
+    if(!creator) throw new TypeDeleteError(NOT_ENOUGH_DATA)
+    return await repository.deleteAllByCreator(creator)
+}
 
 const updateByIdCreatorAndName = async ({id:id,creator:creator,name:name}) => {
     if(!id || !creator || !values.name) throw new TypeUpdateError(NOT_ENOUGH_DATA)
@@ -71,5 +68,6 @@ module.exports = {
     getByCreatorMovementAndName,
     getAllByCreator, // get all types by creator
     deleteByIdAndCreator, // delete type by id and creator id
+    deleteAllByCreator,
     updateByIdCreatorAndName, // update a type y creator id and type name
 }

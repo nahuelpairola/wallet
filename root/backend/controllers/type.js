@@ -33,7 +33,6 @@ const getTypes = async (req,res) => {
         success: true,
         message: 'Types searched successful',
         data:{
-            nTypes: types.length,
             types: types
         }
     })
@@ -46,7 +45,7 @@ const deleteType = async (req,res) => {
     res.status(StatusCodes.ACCEPTED).json({
         success:true,
         message:'Type deleted successful',
-        data:{}
+        data:null
     })
 }
 

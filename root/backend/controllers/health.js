@@ -5,7 +5,7 @@ const {isConnectionHealthy} = require('../db/healthyCheck')
 
 const healthCheck = async (req, res) => {
     if(isConnectionHealthy()) {
-        res.status(StatusCodes.OK).json({msg: "Everything is fine :)"})
+        res.status(StatusCodes.OK).json({success: true, message: "Everything is fine :)"})
     } else {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({msg: INTERNAL_SERVER_ERROR})
     }

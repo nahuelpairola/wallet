@@ -4,24 +4,21 @@ const {StatusCodes} = require('http-status-codes')
 
 const updateUser = async (req,res) => {
     const {first_name, last_name, email, password} = req.body
-    const {id: id} = req.params
-    const user = req.user
-    const values = {id, first_name, last_name, email, password} // values contains user id received in params
-    const {user:userUpdated,token} = await updateByIdAndValues({id:user.id,values:values})
+    const {id} = req.params
+    const {user,token} = await updateByIdAndValues(req.user.id,{id, first_name, last_name, email, password})
     res.status(StatusCodes.OK).json({
         success: true,
-        message: 'User created successful',
+        message: 'User updated successful',
         data: {
-            user:userUpdated,
+            user,
         },
         token:token
     })
 }
 
 const deleteUser = async (req,res) => {
-    const user = req.user
-    const {id:userId} = req.params
-    const {user:deletedUser,nTypes:nTypes,nAmounts:nAmounts} = await deleteByIdAndUser({id:userId, user:user})
+    const {id} = req.params
+    const {user:deletedUser,nTypes:nTypes,nAmounts:nAmounts} = await deleteByIdAndUser(id, req.user.id)
     res.status(StatusCodes.OK).json({
         success: true,
         message: "User deleted successful",
@@ -30,7 +27,6 @@ const deleteUser = async (req,res) => {
             nTypes:nTypes,
             nAmounts:nAmounts,
         }
-        
     })
 }
 
