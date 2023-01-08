@@ -113,7 +113,7 @@ const updateByIdAndValues = async (userId, values) => {
 const updateAccountBalanceById = async (id,accountBalance) => {
     if(!id || typeof accountBalance === 'undefined') throw new UserUpdateError(NOT_ENOUGH_DATA)
     const user = await repository.updateAccountBalance(id,accountBalance)
-    return user.accountBalance
+    return  user.accountBalance
 }
 
 const deleteByIdAndUser = async (userId, id) => {

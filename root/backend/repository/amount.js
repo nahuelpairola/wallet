@@ -150,10 +150,10 @@ const getPaginationByLimitActualPageAndCountAmounts = ({limit,actualPage,countAm
     }
     // calculate total_pages
     if(countAmounts % pagination.per_page !== 0) pagination.total_pages = Math.floor(countAmounts/limit)+1  
-    else pagination.total_pages = Math.floor(countAmounts/limit)
+    else pagination.total_pages = Math.floor(countAmounts/limit)+1
     // calculate next and previous page
-    pagination.previous_page = pagination.current_page - 1
     if(pagination.current_page===1) pagination.previous_page = null
+    else pagination.previous_page = pagination.current_page - 1
     pagination.next_page = pagination.current_page + 1
     if(pagination.total_pages === 1) {
         pagination.current_page = pagination.total_pages
