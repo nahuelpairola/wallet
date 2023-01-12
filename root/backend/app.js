@@ -24,7 +24,7 @@ const userRoutes = require('./routes/user')
 const typeRoutes = require('./routes/type')
 const amountRoutes = require('./routes/amount')
 const healthRoute = require('./routes/health')
-const { RESET_CONTENT, StatusCodes } = require('http-status-codes')
+const passwordResetRouter = require('./routes/passwordReset.ts')
 
 app.set('trust proxy', 1)
 app.use(rateLimiter({
@@ -42,6 +42,7 @@ app.use('/api/v1/user', authenticationMiddleware, userRoutes)
 app.use('/api/v1/type', authenticationMiddleware, typeRoutes)
 app.use('/api/v1/amount', authenticationMiddleware, amountRoutes)
 app.use('/api/v1/health', healthRoute)
+app.use('/api/v1/passwordReset', passwordResetRouter)
 
 app.use(notFoundMiddleware)
 app.use(errorHandlerMiddleware)

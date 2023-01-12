@@ -30,4 +30,13 @@ const deleteUser = async (req,res) => {
     })
 }
 
-module.exports = {updateUser, deleteUser}
+const resetPassword = async (req,res) => {
+    const {email} = req.body
+    res.status(StatusCodes.OK).json({
+        success: true,
+        message: 'Password Reset Process',
+        data:{}
+    })
+}
+
+module.exports = {updateUser, deleteUser,resetPassword}
